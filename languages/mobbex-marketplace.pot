@@ -1,0 +1,73 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Mobbex Marketplace\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-01-25 16:23+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.5.0; wp-5.6\n"
+"X-Domain: mobbex-marketplace"
+
+#: mobbex-marketplace.php:237 mobbex-marketplace.php:288
+msgid "Fee (optional)"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://mobbex.com/"
+msgstr ""
+
+#. Name of the plugin
+msgid "Mobbex Marketplace"
+msgstr ""
+
+#: mobbex-marketplace.php:93
+msgid "Mobbex Marketplace requires Mobbex for WooCommerce to be activated"
+msgstr ""
+
+#. Author of the plugin
+msgid "mobbex.com"
+msgstr ""
+
+#. Description of the plugin
+msgid "Plugin to extend Mobbex Marketplace functionality."
+msgstr ""
+
+#: includes/settings.php:53
+msgid "Set Default Payment Fee"
+msgstr ""
+
+#: mobbex-marketplace.php:227 mobbex-marketplace.php:275
+msgid "Tax Id"
+msgstr ""
+
+#: mobbex-marketplace.php:238
+msgid "This option has priority over the one applied at the category level."
+msgstr ""
+
+#: mobbex-marketplace.php:294
+msgid "This option has priority over the one applied by default."
+msgstr ""
+
+#: includes/settings.php:40
+msgid ""
+"To establish a new supplier, use the configuration panel of each product \n"
+"\t\t\tor category in which you want to distribute your payment"
+msgstr ""
+
+#: includes/settings.php:56
+msgid "Will be used when not set at product/category level"
+msgstr ""
+
+#: mobbex-marketplace.php:228 mobbex-marketplace.php:281
+msgid ""
+"Written without hyphens. Cuit of store to which you want to allocate the "
+"payment."
+msgstr ""

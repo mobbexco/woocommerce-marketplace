@@ -1,0 +1,74 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Mobbex Marketplace\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-01-25 16:23+0000\n"
+"PO-Revision-Date: 2021-01-25 17:17+0000\n"
+"Last-Translator: Jorge Borges\n"
+"Language-Team: Español de Argentina\n"
+"Language: es_AR\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.5.0; wp-5.6\n"
+"X-Domain: mobbex-marketplace"
+
+#: mobbex-marketplace.php:237 mobbex-marketplace.php:288
+msgid "Fee (optional)"
+msgstr "Comisión (opcional)"
+
+#. Author URI of the plugin
+msgid "https://mobbex.com/"
+msgstr ""
+
+#. Name of the plugin
+msgid "Mobbex Marketplace"
+msgstr ""
+
+#: mobbex-marketplace.php:93
+msgid "Mobbex Marketplace requires Mobbex for WooCommerce to be activated"
+msgstr "Mobbex Marketplace requiere que Mobbex for WooCommerce esté activado"
+
+#. Author of the plugin
+msgid "mobbex.com"
+msgstr ""
+
+#. Description of the plugin
+msgid "Plugin to extend Mobbex Marketplace functionality."
+msgstr "Plugin para extender la funcionalidad de Mobbex Marketplace."
+
+#: includes/settings.php:53
+msgid "Set Default Payment Fee"
+msgstr "Comisión de pago por defecto"
+
+#: mobbex-marketplace.php:227 mobbex-marketplace.php:275
+msgid "Tax Id"
+msgstr "Cuit"
+
+#: mobbex-marketplace.php:238
+msgid "This option has priority over the one applied at the category level."
+msgstr "Esta opción tiene prioridad sobre la aplicada a nivel categoría."
+
+#: mobbex-marketplace.php:294
+msgid "This option has priority over the one applied by default."
+msgstr "Esta opción tiene prioridad sobre la aplicada por defecto."
+
+#: includes/settings.php:40
+msgid ""
+"To establish a new supplier, use the configuration panel of each product \n"
+"\t\t\tor category in which you want to distribute your payment"
+msgstr ""
+"Para establecer un nuevo proveedor, utilice el panel de configuración de "
+"cada producto o categoría en el que desee distribuir el pago"
+
+#: includes/settings.php:56
+msgid "Will be used when not set at product/category level"
+msgstr "Se utilizará cuando no esté configurada a nivel de producto/categoría"
+
+#: mobbex-marketplace.php:228 mobbex-marketplace.php:281
+msgid ""
+"Written without hyphens. Cuit of store to which you want to allocate the "
+"payment."
+msgstr "Escrito sin guiones. Cuit del comercio al que quiere destinar el pago."
