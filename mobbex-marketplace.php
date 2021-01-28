@@ -330,16 +330,18 @@ class MobbexMarketplace
             if (!empty($cuit)) {
 
                 // Check if a product with the same cuit is already added
-                foreach ($checkout_data['split'] as $key => $payment) {
-                    if ($payment['tax_id'] === $cuit) {
-                        // Combine values
-                        $payment['total'] += $item->get_total();
-                        $payment['fee'] += $this->get_fee($product_id);
-                        $payment['description'] .= ", $product_id";
-                        
-                        $checkout_data['split'][$key] = $payment;
-                        // Go to next item
-                        continue 2;
+                if (!empty($checkout_data['split'])) {
+                    foreach ($checkout_data['split'] as $key => $payment) {
+                        if ($payment['tax_id'] === $cuit) {
+                            // Combine values
+                            $payment['total'] += $item->get_total();
+                            $payment['fee'] += $this->get_fee($product_id);
+                            $payment['description'] .= ", $product_id";
+
+                            $checkout_data['split'][$key] = $payment;
+                            // Go to next item
+                            continue 2;
+                        }
                     }
                 }
 
