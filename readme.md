@@ -26,5 +26,8 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.1.0 :: 2021-02-05
+- Integrate with Dokan.
+
 ### 1.0.0 :: 2021-01-15
 - Initial release.
