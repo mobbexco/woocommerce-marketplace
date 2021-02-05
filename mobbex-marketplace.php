@@ -323,7 +323,7 @@ class MobbexMarketplace
                 <input type="text" name="mobbex_marketplace_fee" id="mobbex_marketplace_fee" size="3"
                 value="<?= get_term_meta($term->term_id, 'mobbex_marketplace_fee', true) ?>">
                 <br/>
-                <span class="description"><?= __('This option has priority over the one applied by default.', 'mobbex-marketplace') ?>
+                <span class="description"><?= __('This option has priority over the one applied at vendor and default level.', 'mobbex-marketplace') ?>
                 </span>
             </td>
         </tr>
@@ -541,7 +541,7 @@ class MobbexMarketplace
     }
 
     /**
-     * Add Mobbex fields to vendor registration form.
+     * Add Mobbex fields to vendor registration.
      * 
      * (Dokan hook)
      */
@@ -588,7 +588,7 @@ class MobbexMarketplace
     }
 
     /**
-     * Add Mobbex fields to admin vendor edit form.
+     * Add Mobbex fields to admin vendor edit.
      * 
      * (Dokan hook)
      * @param WP_User $user
@@ -641,13 +641,15 @@ class MobbexMarketplace
 
                 <tr>
                     <th>
-                        <label for="mobbex_marketplace_hold"><?= __('Payment Withholding', 'mobbex-marketplace') ?></label>
+                        <?= __('Payment Withholding', 'mobbex-marketplace') ?>
                     </th>
                     <td>
                         <label for="mobbex_marketplace_hold">
                             <input type="checkbox" name="mobbex_marketplace_hold" id="mobbex_marketplace_hold"
                             <?= (get_user_meta($user->ID, 'mobbex_marketplace_hold', true) === 'yes') ? 'checked="checked"' : ''?>>
                             <?= __('Withhold payments', 'mobbex-marketplace') ?>
+                            <p class="description"><?= __('You can release them on order panel using "Unhold Mobbex Payment" action', 'mobbex-marketplace') ?>
+                            </p>
                         </label>
                     </td>
                 </tr>
@@ -681,7 +683,6 @@ class MobbexMarketplace
         }
     }
 
-
     /**
      * Add Unhold payment actions to order actions select.
      * Only added for orders with holded payments
@@ -709,7 +710,7 @@ class MobbexMarketplace
     }
 
     /**
-     * Add Unhold payments select to order actions form.
+     * Add Unhold payments select to Order actions form.
      *
      * @param int $order_id
      */
@@ -774,8 +775,7 @@ class MobbexMarketplace
     }
 
     /**
-     * Add Unhold payment actions to order actions select.
-     * Only added for orders with holded payments
+     * Process Unhold payment actions.
      *
      * @param WC_Order $order
      */
