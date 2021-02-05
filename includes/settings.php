@@ -37,8 +37,8 @@ class MM_Settings
 
         <div class="wrap">
             <h2>Mobbex Marketplace</h2>
-            <p><?= __('To establish a new supplier, use the configuration panel of each product 
-			or category in which you want to distribute your payment', 'mobbex-marketplace') ?></p>
+            <p><?= __('To distribute a payment without integrating any other Marketplace plugin, you must charge by product/category the Tax Id of the store to which you want to allocate the payment', 'mobbex-marketplace') ?></p>
+            <p><?= __('This Tax Id must be the same as the one configured in the Mobbex commerce', 'mobbex-marketplace') ?></p>
             <?php settings_errors(); ?>
 
             <form method="post" action="options.php">
@@ -50,10 +50,37 @@ class MM_Settings
                 ?>
                 <table class="form-table">
                     <tr valign="top">
+                        <th scope="row"><?= __('API Key', 'mobbex-for-woocommerce') ?></th>
+                        <td><?= $this->api_key_field() ?>
+                            <p class="description">
+                                <?= __('Your Mobbex API key.', 'mobbex-for-woocommerce') ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top">
+                        <th scope="row"><?= __('Access Token', 'mobbex-for-woocommerce') ?></th>
+                        <td><?= $this->access_token_field() ?>
+                            <p class="description">
+                                <?= __('Your Mobbex access token.', 'mobbex-for-woocommerce') ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top">
+                        <th scope="row"><?= __('Plugin Integrations', 'mobbex-marketplace') ?></th>
+                        <td><?= $this->integration_field() ?>
+                            <p class="description">
+                                <?= __('Integrate with other Marketplace plugins', 'mobbex-marketplace') ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top">
                         <th scope="row"><?= __('Set Default Payment Fee', 'mobbex-marketplace') ?></th>
                         <td><?= $this->default_fee_field() ?>
                             <p class="description">
-                                <?= __('Will be used when not set at product/category level', 'mobbex-marketplace') ?>
+                                <?= __('Will be used when not set at product/category/vendor level', 'mobbex-marketplace') ?>
                             </p>
                         </td>
                     </tr>
@@ -66,6 +93,37 @@ class MM_Settings
         </div>
 
         <?php
+    }
+
+    /**
+     * Render api-key field.
+     */
+    public function api_key_field()
+    {
+        $value = !empty(get_option('mm_option_api_key')) ? esc_attr(get_option('mm_option_api_key')) : '';
+        return '<input class="regular-text" type="text" name="mm_option_api_key" id="api-key" value="' . $value . '">';
+    }
+
+    /**
+     * Render access token field.
+     */
+    public function access_token_field()
+    {
+        $value = !empty(get_option('mm_option_access_token')) ? esc_attr(get_option('mm_option_access_token')) : '';
+        return '<input class="regular-text" type="text" name="mm_option_access_token" id="access_token" value="' . $value . '">';
+    }
+
+    /**
+     * Render plugin integration field.
+     */
+    public function integration_field()
+    {
+        $value = !empty(get_option('mm_option_integration')) ? esc_attr(get_option('mm_option_integration')) : '';
+        return 
+        '<select name="mm_option_integration" id="integration">
+            <option value="0" ' . selected($value, 0, false) . '>' . __('No') . '</option>
+            <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan') . '</option>
+        </select>';
     }
 
     /**
@@ -84,7 +142,19 @@ class MM_Settings
     {
         register_setting(
             'mm_option_group',
-            'mm_option_default_fee',
+            'mm_option_api_key'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_access_token'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_integration'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_default_fee'
         );
     }
 
