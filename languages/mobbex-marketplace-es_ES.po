@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Mobbex Marketplace\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-25 16:23+0000\n"
-"PO-Revision-Date: 2021-01-25 17:18+0000\n"
+"PO-Revision-Date: 2021-02-05 17:12+0000\n"
 "Last-Translator: Jorge Borges\n"
 "Language-Team: Español\n"
 "Language: es_ES\n"
@@ -12,10 +12,15 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Loco https://localise.biz/\n"
-"X-Loco-Version: 2.5.0; wp-5.6\n"
+"X-Loco-Version: 2.5.0; wp-5.6.1\n"
 "X-Domain: mobbex-marketplace"
 
-#: mobbex-marketplace.php:237 mobbex-marketplace.php:288
+#: mobbex-marketplace.php:423
+msgid "A payment of this order is withheld"
+msgstr "Un pago de esta orden fue retenido"
+
+#: mobbex-marketplace.php:261 mobbex-marketplace.php:320
+#: mobbex-marketplace.php:631
 msgid "Fee (optional)"
 msgstr "Comisión (opcional)"
 
@@ -23,52 +28,157 @@ msgstr "Comisión (opcional)"
 msgid "https://mobbex.com/"
 msgstr ""
 
+#: includes/settings.php:42
+msgid ""
+"If you want a payment to be commission free, you must leave the commission "
+"option empty in the product, category, vendor and plugin configuration "
+"(Default Commission) that affect said payment."
+msgstr ""
+"Si desea que un pago no tenga comisión, debe dejar vacía la opción de "
+"comisión en el producto, categoría, vendedor y configuración del plugin "
+"(Comisión por defecto) que afecten dicho pago."
+
+#: includes/settings.php:75
+msgid "Integrate with other Marketplace plugins"
+msgstr "Integrar con plugins de Marketplace"
+
+#: includes/settings.php:72
+msgid "Integrations"
+msgstr "Integraciones"
+
 #. Name of the plugin
 msgid "Mobbex Marketplace"
 msgstr ""
 
-#: mobbex-marketplace.php:93
+#: mobbex-marketplace.php:110
 msgid "Mobbex Marketplace requires Mobbex for WooCommerce to be activated"
+msgstr "Mobbex Marketplace requiere que Mobbex for WooCommerce esté activado"
+
+#: mobbex-marketplace.php:114
+msgid ""
+"Mobbex Marketplace requires Mobbex for WooCommerce version 3.1.1 or greater"
 msgstr "Mobbex Marketplace requiere que Mobbex for WooCommerce esté activado"
 
 #. Author of the plugin
 msgid "mobbex.com"
 msgstr ""
 
+#: mobbex-marketplace.php:644
+msgid "Payment Withholding"
+msgstr "Retención de pago"
+
+#: mobbex-marketplace.php:569
+msgid "Please enter the Tax Id configured in your Mobbex commerce."
+msgstr "Por favor, introduzca el Cuit configurado su comercio de Mobbex"
+
 #. Description of the plugin
 msgid "Plugin to extend Mobbex Marketplace functionality."
 msgstr "Plugin para extender la funcionalidad de Mobbex Marketplace."
 
-#: includes/settings.php:53
+#: mobbex-marketplace.php:637
+msgid "Set admin commission to seller through Mobbex"
+msgstr "Establecer comisión de administración al vendedor usando Mobbex"
+
+#: includes/settings.php:81
 msgid "Set Default Payment Fee"
 msgstr "Comisión de pago por defecto"
 
-#: mobbex-marketplace.php:227 mobbex-marketplace.php:275
+#: mobbex-marketplace.php:253 mobbex-marketplace.php:306
+#: mobbex-marketplace.php:617
 msgid "Tax Id"
 msgstr "Cuit"
 
-#: mobbex-marketplace.php:238
-msgid "This option has priority over the one applied at the category level."
-msgstr "Esta opción tiene prioridad sobre la aplicada a nivel categoría."
+#: mobbex-marketplace.php:624
+msgid "Tax Id configured in Mobbex commerce"
+msgstr "Cuit configurado en el comercio de Mobbex"
 
-#: mobbex-marketplace.php:294
-msgid "This option has priority over the one applied by default."
-msgstr "Esta opción tiene prioridad sobre la aplicada por defecto."
+#: mobbex-marketplace.php:554
+msgid "Tax Id configured in your Mobbex commerce"
+msgstr "Cuit configurado su comercio de Mobbex"
+
+#: mobbex-marketplace.php:262
+#| msgid "This option has priority over the one applied at the category level."
+msgid ""
+"This option has priority over the one applied at category and vendor level."
+msgstr ""
+"Esta opción tiene prioridad sobre la aplicada a nivel categoría y vendedor"
+
+#: mobbex-marketplace.php:326
+msgid ""
+"This option has priority over the one applied at vendor and default level."
+msgstr ""
+"Esta opción tiene prioridad sobre la aplicada a nivel vendedor y la aplicada "
+"por defecto."
+
+#: includes/settings.php:41
+msgid ""
+"This Tax Id must be the same as the one configured in the Mobbex commerce"
+msgstr ""
+"Este Cuit debe ser el mismo que el configurado en el comercio de Mobbex."
 
 #: includes/settings.php:40
 msgid ""
-"To establish a new supplier, use the configuration panel of each product \n"
-"\t\t\tor category in which you want to distribute your payment"
+"To distribute a payment without integrating another Marketplace plugin (eg "
+"Dokan), you must charge the Tax ID of the commerce to which you want to "
+"assign the payment by product or category."
 msgstr ""
-"Para establecer un nuevo proveedor, utilice el panel de configuración de "
-"cada producto o categoría en el que desee distribuir el pago"
+"Para distribuir un pago sin integrar otro plugin de Marketplace (ej. Dokan), "
+"debe cargar por producto o categoría el CUIT del comercio al que desea "
+"asignar el pago."
 
-#: includes/settings.php:56
-msgid "Will be used when not set at product/category level"
-msgstr "Se utilizará cuando no esté configurada a nivel de producto/categoría"
+#: mobbex-marketplace.php:748
+#, php-format
+msgid "Unhold $ %s of %s"
+msgstr "Liberar $ %s a %s"
 
-#: mobbex-marketplace.php:228 mobbex-marketplace.php:281
+#: mobbex-marketplace.php:794
+msgid "Unhold Error."
+msgstr "Error de liberación de fondos."
+
+#: mobbex-marketplace.php:830
+msgid "Unhold Error: Sorry! This is not a unholdable transaction."
+msgstr ""
+"Error de liberación de fondos: Lo siento! Esta no es una transacción "
+"liberable."
+
+#: mobbex-marketplace.php:809
+msgid "Unhold Error: UID, API key or access token is empty or not configured."
+msgstr ""
+"Error de liberación de fondos: UID, API key o access token están vacíos o no "
+"fueron configurados."
+
+#: mobbex-marketplace.php:703
+msgid "Unhold Mobbex payment"
+msgstr "Liberar pago con Mobbex"
+
+#: mobbex-marketplace.php:119
+msgid ""
+"Warning: Mobbex Marketplace requires Mobbex for Woocommerce 3.1.3 to use "
+"Wallet option with split payments"
+msgstr ""
+"Advertencia: Mobbex Marketplace requiere Mobbex for Woocommerce 3.1.3 para "
+"distribuir pagos con la opción de Wallet activa"
+
+#: includes/settings.php:84
+#| msgid "Will be used when not set at product/category level"
+msgid "Will be used when not set at product/category/vendor level"
+msgstr ""
+"Se utilizará cuando no esté configurada a nivel de "
+"producto/categoría/vendedor"
+
+#: mobbex-marketplace.php:650
+msgid "Withhold payments"
+msgstr "Retener pagos"
+
+#: mobbex-marketplace.php:254 mobbex-marketplace.php:312
 msgid ""
 "Written without hyphens. Cuit of store to which you want to allocate the "
 "payment."
 msgstr "Escrito sin guiones. Cuit del comercio al que quiere destinar el pago."
+
+#: mobbex-marketplace.php:651
+msgid ""
+"You can release them on order panel using \"Unhold Mobbex Payment\" action"
+msgstr ""
+"Podrá liberarlos desde el panel de cada pedido utilizando la acción "
+"\"Liberar pago con Mobbex\""
