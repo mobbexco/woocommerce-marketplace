@@ -38,7 +38,6 @@ class MobbexMarketplace
 
     public function init()
     {
-        MobbexMarketplace::check_dependencies();
         MobbexMarketplace::load_textdomain();
         MobbexMarketplace::load_update_checker();
         MobbexMarketplace::load_settings();
@@ -89,6 +88,11 @@ class MobbexMarketplace
             add_action('woocommerce_order_actions_end', [$this, 'add_unhold_fields']);
             add_action('woocommerce_order_action_mobbex_unhold_payment', [$this, 'process_unhold_action']);
         }
+    }
+    
+    public function initb()
+    {
+      MobbexMarketplace::check_dependencies();
     }
 
     /**
@@ -834,3 +838,4 @@ class MobbexMarketplace
 
 $mobbexMarketplace = new MobbexMarketplace;
 add_action('plugins_loaded', [ & $mobbexMarketplace, 'init']);
+add_action( 'admin_init', 'initb' );
