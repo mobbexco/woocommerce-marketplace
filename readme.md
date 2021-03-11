@@ -26,6 +26,9 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.1.1 :: 2021-03-11
+- Fix dependencies detection.
+
 ### 1.1.0 :: 2021-02-05
 - Integrate with Dokan.
 
