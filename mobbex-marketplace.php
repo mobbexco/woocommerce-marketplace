@@ -106,24 +106,16 @@ class MobbexMarketplace
             MobbexMarketplace::$errors[] = __('Mobbex requires WooCommerce to be activated', 'mobbex-for-woocommerce');
         }
 
-        $wc_mobbex_active = false;
-        if(is_plugin_active('mobbex-for-woocommerce/mobbex-for-woocommerce.php') || 
-           is_plugin_active('woocommerce-mobbex/mobbex-for-woocommerce.php') ||
-           is_plugin_active('woocommerce-mobbex/woocommerce-mobbex.php')
-        ) {
-            $wc_mobbex_active = true;
-        }
-
-        if(!$wc_mobbex_active) {
+        if(!class_exists('MobbexGateway')) {
             MobbexMarketplace::$errors[] = __('Mobbex Marketplace requires Mobbex for WooCommerce to be activated', 'mobbex-marketplace');
         }
 
-        if($wc_mobbex_active && version_compare(MOBBEX_VERSION, '3.1.1', '<')) {
+        if(class_exists('MobbexGateway') && version_compare(MOBBEX_VERSION, '3.1.1', '<')) {
             MobbexMarketplace::$errors[] = __('Mobbex Marketplace requires Mobbex for WooCommerce version 3.1.1 or greater', 'mobbex-marketplace');
         }
 
         // Warning for wallet option support
-        if ($wc_mobbex_active && version_compare(MOBBEX_VERSION, '3.1.3', '<')) {
+        if (class_exists('MobbexGateway') && version_compare(MOBBEX_VERSION, '3.1.3', '<')) {
             MobbexMarketplace::notice('warning', __('Warning: Mobbex Marketplace requires Mobbex for Woocommerce 3.1.3 to use Wallet option with split payments', 'mobbex-marketplace'));
         }
 
