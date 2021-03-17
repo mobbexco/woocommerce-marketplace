@@ -8,6 +8,7 @@
  * Author URI: https://mobbex.com/
  * Copyright: 2021 mobbex.com
  */
+require_once('class-wcfmmp-gateway-mobbex.php');
 
 class MobbexMarketplace
 {
@@ -36,8 +37,12 @@ class MobbexMarketplace
     public static $github_url = "https://github.com/mobbexco/woocommerce-marketplace";
     public static $github_issues_url = "https://github.com/mobbexco/woocommerce-marketplace/issues";
 
+    
+
     public function init()
     {
+        require_once('class-wcfmmp-gateway-mobbex.php');
+        try{
         MobbexMarketplace::check_dependencies();
         MobbexMarketplace::load_textdomain();
         MobbexMarketplace::load_update_checker();
@@ -73,6 +78,33 @@ class MobbexMarketplace
         add_filter('edited_product_cat', [$this, 'save_category_config']);
         add_filter('create_product_cat', [$this, 'save_category_config']);
 
+        
+        if(get_option('mm_option_integration') === 'wcfm'){
+
+            add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'addMethod'] );
+            
+            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_keys', [$this, 'addAdmintaxid'], 50, 2);
+
+            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_test_keys', function( $payment_test_keys, $wcfm_withdrawal_options ) {
+                $gateway_slug = 'mobbex';
+                $withdrawal_mobbex_test_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_test_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_test_tax_id'] : '';
+                $payment_tax_test_keys = array(
+                    "withdrawal_".$gateway_slug."_test_tax_id" => array('label' => __('Mobbex Tax ID', 'wc-multivendor-marketplace'), 'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_test_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_test withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_test withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_test_tax_id ),
+                );
+                $payment_test_keys = array_merge( $payment_test_keys, $payment_tax_test_keys );
+                return $payment_test_keys;
+            }, 50, 2);
+
+            add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'addVendortaxid'], 50, 2);
+
+            add_filter( 'wcfm_product_data_factory', function( $wcfm_data, $new_product_id, $product, $wcfm_products_manage_form_data ) {
+                if( !apply_filters( 'wcfm_is_allow_tax', true ) || !apply_filters( 'wcfm_is_allow_pm_tax', true ) ) {
+                    $wcfm_data['tax_status'] = 'none';
+                }
+                return $wcfm_data;	
+            }, 50, 4 );
+
+        }
         // Dokan vendor registration
         add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
         add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
@@ -89,7 +121,60 @@ class MobbexMarketplace
             add_action('woocommerce_order_actions_end', [$this, 'add_unhold_fields']);
             add_action('woocommerce_order_action_mobbex_unhold_payment', [$this, 'process_unhold_action']);
         }
+
+        } catch (Exception $e) {
+            print_r(var_dump($e->getMessage()));
+        }
     }
+
+
+    /**
+     * 
+     */
+    public function addMethod( $payment_methods ) 
+    {
+        try {
+            if(!array_key_exists('mobbex', $payment_methods))//
+            {
+                $payment_methods['mobbex'] = 'Mobbex';
+                //print_r(var_dump($payment_methods));
+            }
+        } catch (Exception $e) {
+            echo 'Excepción capturada: ',  $e->getMessage(), "\n";
+        }
+        return $payment_methods;    
+    }
+
+    /**
+     * 
+     */
+    public function addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
+    {
+        $gateway_slug = 'mobbex';
+        $withdrawal_mobbex_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] : '';
+        $payment_mobbex_keys = array(
+            "withdrawal_".$gateway_slug."_tax_id" => array('label' => __('Tax Id', 'wc-multivendor-marketplace'), 'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_tax_id ),
+        );
+        $payment_keys = array_merge( $payment_keys, $payment_brain_tree_keys );
+        return $payment_keys;
+    }
+
+    /**
+     * 
+     */
+    public function addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
+    {
+        $gateway_slug = 'mobbex';
+        $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+        if( !$vendor_data ) $vendor_data = array();
+        $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
+        $vendor_mobbex_billing_fileds = array(
+            $gateway_slug => array('label' => __('Tax ID', 'wc-frontend-manager'), 'name' => 'payment['.$gateway_slug.'][tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_'.$gateway_slug, 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_'.$gateway_slug, 'value' => $mobbex_tax_id ),
+        );
+        $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
+        return $vendor_billing_fileds;
+    }
+
 
     /**
      * Check dependencies.
@@ -265,7 +350,7 @@ class MobbexMarketplace
         ];
 
         // Only add cuit field if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
+        if (get_option('mm_option_integration') !== 'dokan' && get_option('mm_option_integration') !== 'wcfm') {
             woocommerce_wp_text_input($cuit_field); 
         }
         woocommerce_wp_text_input($fee_field); 
@@ -358,7 +443,7 @@ class MobbexMarketplace
         if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<')) {
             return;
         }
-
+        
         $order = wc_get_order($order_id);
         $items = $order->get_items();
 
@@ -400,7 +485,9 @@ class MobbexMarketplace
         }
 
         return $checkout_data;
+        
     }
+
 
     /**
      * Save split data from Mobbex checkout response.
@@ -448,6 +535,18 @@ class MobbexMarketplace
             }
             // If dokan is enabled only use Dokan Vendor cuits
             return $vendor_cuit;
+        }else{
+            if(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' ) ){
+				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
+                //$product = get_post( $product_id );
+                //$product_author_id = $product->post_author->get_id();
+                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+                $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+				//$store_vendor = wcfm_get_vendor( $vendor_id );
+				//$vendor_cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+                // If WCFM is enabled only use WCFM Vendor cuits
+                return $vendor_cuit;
+            }
         }
 
         // Get cuit from product
@@ -660,16 +759,7 @@ class MobbexMarketplace
     }
 
     /**
-     * Save Mobbex fields from admin vendor edit.
-     * 
-     * (Dokan hook)
-     * @param int $user_id
-     */
-    public function dokan_admin_save_vendor_fields($user_id)
-    {
-        $post_data = wp_unslash($_POST);
-
-        if (!empty($user_id)) {
+     * Save Mobbex fields from admin vendor edit.dokan_admin_save_vendor_fields
             // If Mobbex values is sent save it
             $tax_id = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
             $fee = isset($post_data['mobbex_marketplace_fee']) ? sanitize_text_field($post_data['mobbex_marketplace_fee']) : '';

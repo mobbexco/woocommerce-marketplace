@@ -124,6 +124,7 @@ class MM_Settings
         '<select name="mm_option_integration" id="integration">
             <option value="0" ' . selected($value, 0, false) . '>' . __('No') . '</option>
             <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan') . '</option>
+            <option value="wcfm" ' . selected($value, 'wcfm', false) . '>' . __('WCFM') . '</option>
         </select>';
     }
 
