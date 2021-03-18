@@ -8,7 +8,6 @@
  * Author URI: https://mobbex.com/
  * Copyright: 2021 mobbex.com
  */
-require_once('class-wcfmmp-gateway-mobbex.php');
 
 class MobbexMarketplace
 {
@@ -41,8 +40,12 @@ class MobbexMarketplace
 
     public function init()
     {
-        require_once('class-wcfmmp-gateway-mobbex.php');
+        
         try{
+            
+        //wcfm integration class
+        require_once('wcfmmp-gateway-mobbex.php');
+
         MobbexMarketplace::check_dependencies();
         MobbexMarketplace::load_textdomain();
         MobbexMarketplace::load_update_checker();
@@ -78,31 +81,14 @@ class MobbexMarketplace
         add_filter('edited_product_cat', [$this, 'save_category_config']);
         add_filter('create_product_cat', [$this, 'save_category_config']);
 
-        
+        //WCFM integration
         if(get_option('mm_option_integration') === 'wcfm'){
 
-            add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'addMethod'] );
+            add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod'] );
             
-            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_keys', [$this, 'addAdmintaxid'], 50, 2);
+            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_keys', [$this, 'wcfm_addAdmintaxid'], 50, 2);
 
-            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_test_keys', function( $payment_test_keys, $wcfm_withdrawal_options ) {
-                $gateway_slug = 'mobbex';
-                $withdrawal_mobbex_test_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_test_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_test_tax_id'] : '';
-                $payment_tax_test_keys = array(
-                    "withdrawal_".$gateway_slug."_test_tax_id" => array('label' => __('Mobbex Tax ID', 'wc-multivendor-marketplace'), 'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_test_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_test withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_test withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_test_tax_id ),
-                );
-                $payment_test_keys = array_merge( $payment_test_keys, $payment_tax_test_keys );
-                return $payment_test_keys;
-            }, 50, 2);
-
-            add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'addVendortaxid'], 50, 2);
-
-            add_filter( 'wcfm_product_data_factory', function( $wcfm_data, $new_product_id, $product, $wcfm_products_manage_form_data ) {
-                if( !apply_filters( 'wcfm_is_allow_tax', true ) || !apply_filters( 'wcfm_is_allow_pm_tax', true ) ) {
-                    $wcfm_data['tax_status'] = 'none';
-                }
-                return $wcfm_data;	
-            }, 50, 4 );
+            add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
 
         }
         // Dokan vendor registration
@@ -129,15 +115,16 @@ class MobbexMarketplace
 
 
     /**
-     * 
+     * Add Mobbex as payment method
+     * @param $payment_methods : array
+     * @return array
      */
-    public function addMethod( $payment_methods ) 
+    public function wcfm_addMethod( $payment_methods ) 
     {
         try {
             if(!array_key_exists('mobbex', $payment_methods))//
             {
                 $payment_methods['mobbex'] = 'Mobbex';
-                //print_r(var_dump($payment_methods));
             }
         } catch (Exception $e) {
             echo 'Excepción capturada: ',  $e->getMessage(), "\n";
@@ -145,10 +132,14 @@ class MobbexMarketplace
         return $payment_methods;    
     }
 
+
     /**
-     * 
+     * Add admin tax id in the admin's payment  page
+     * @param $payment_keys : array
+     * @param $wcfm_withdrawal_options : array
+     * @return array
      */
-    public function addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
+    public function wcfm_addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
     {
         $gateway_slug = 'mobbex';
         $withdrawal_mobbex_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] : '';
@@ -162,7 +153,7 @@ class MobbexMarketplace
     /**
      * 
      */
-    public function addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
+    public function wcfm_addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
     {
         $gateway_slug = 'mobbex';
         $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
