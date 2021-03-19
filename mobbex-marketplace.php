@@ -473,18 +473,12 @@ class MobbexMarketplace
             }
             // If dokan is enabled only use Dokan Vendor cuits
             return $vendor_cuit;
-        }else{
-            if(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' ) ){
+        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
 				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-                //$product = get_post( $product_id );
-                //$product_author_id = $product->post_author->get_id();
                 $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
                 $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
-				//$store_vendor = wcfm_get_vendor( $vendor_id );
-				//$vendor_cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
                 // If WCFM is enabled only use WCFM Vendor cuits
                 return $vendor_cuit;
-            }
         }
 
         // Get cuit from product
