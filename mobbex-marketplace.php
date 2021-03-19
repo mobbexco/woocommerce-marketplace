@@ -83,13 +83,9 @@ class MobbexMarketplace
 
         //WCFM integration
         if(get_option('mm_option_integration') === 'wcfm'){
-
             add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod'] );
-            
             add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_keys', [$this, 'wcfm_addAdmintaxid'], 50, 2);
-
             add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
-
         }
         // Dokan vendor registration
         add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
@@ -691,7 +687,16 @@ class MobbexMarketplace
     }
 
     /**
-     * Save Mobbex fields from admin vendor edit.dokan_admin_save_vendor_fields
+     * Save Mobbex fields from admin vendor edit.
+     * 
+     * (Dokan hook)
+     * @param int $user_id
+     */
+    public function dokan_admin_save_vendor_fields($user_id)
+    {
+        $post_data = wp_unslash($_POST);
+
+        if (!empty($user_id)) {
             // If Mobbex values is sent save it
             $tax_id = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
             $fee = isset($post_data['mobbex_marketplace_fee']) ? sanitize_text_field($post_data['mobbex_marketplace_fee']) : '';
