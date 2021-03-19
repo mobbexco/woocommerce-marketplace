@@ -115,59 +115,6 @@ class MobbexMarketplace
 
 
     /**
-     * Add Mobbex as payment method
-     * @param $payment_methods : array
-     * @return array
-     */
-    public function wcfm_addMethod( $payment_methods ) 
-    {
-        try {
-            if(!array_key_exists('mobbex', $payment_methods))//
-            {
-                $payment_methods['mobbex'] = 'Mobbex';
-            }
-        } catch (Exception $e) {
-            echo 'Excepción capturada: ',  $e->getMessage(), "\n";
-        }
-        return $payment_methods;    
-    }
-
-
-    /**
-     * Add admin tax id in the admin's payment  page
-     * @param $payment_keys : array
-     * @param $wcfm_withdrawal_options : array
-     * @return array
-     */
-    public function wcfm_addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
-    {
-        $gateway_slug = 'mobbex';
-        $withdrawal_mobbex_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] : '';
-        $payment_mobbex_keys = array(
-            "withdrawal_".$gateway_slug."_tax_id" => array('label' => __('Tax Id', 'wc-multivendor-marketplace'), 'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_tax_id ),
-        );
-        $payment_keys = array_merge( $payment_keys, $payment_brain_tree_keys );
-        return $payment_keys;
-    }
-
-    /**
-     * 
-     */
-    public function wcfm_addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
-    {
-        $gateway_slug = 'mobbex';
-        $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-        if( !$vendor_data ) $vendor_data = array();
-        $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
-        $vendor_mobbex_billing_fileds = array(
-            $gateway_slug => array('label' => __('Tax ID', 'wc-frontend-manager'), 'name' => 'payment['.$gateway_slug.'][tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_'.$gateway_slug, 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_'.$gateway_slug, 'value' => $mobbex_tax_id ),
-        );
-        $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
-        return $vendor_billing_fileds;
-    }
-
-
-    /**
      * Check dependencies.
      *
      * @throws Exception
@@ -910,6 +857,62 @@ class MobbexMarketplace
             }
         }
         return new WP_Error('mobbex_unhold_error', __('Unhold Error: Sorry! This is not a unholdable transaction.', 'mobbex-marketplace'));
+    }
+
+
+    /**
+     * Add Mobbex as payment method
+     * @param $payment_methods : array
+     * @return array
+     */
+    public function wcfm_addMethod( $payment_methods ) 
+    {
+        try {
+            if(!array_key_exists('mobbex', $payment_methods))
+            {
+                $payment_methods['mobbex'] = 'Mobbex';
+            }
+        } catch (Exception $e) {
+            echo 'Excepción capturada: ',  $e->getMessage(), "\n";
+        }
+        return $payment_methods;    
+    }
+
+
+    /**
+     * Add admin tax id in the admin's payment  page
+     * @param $payment_keys : array
+     * @param $wcfm_withdrawal_options : array
+     * @return array
+     */
+    public function wcfm_addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
+    {
+        $gateway_slug = 'mobbex';
+        $withdrawal_mobbex_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] : '';
+        $payment_mobbex_keys = array(
+            "withdrawal_".$gateway_slug."_tax_id" => array('label' => __('Tax Id', 'wc-multivendor-marketplace'),'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_tax_id ),
+        );
+        $payment_keys = array_merge( $payment_keys, $payment_brain_tree_keys );
+        return $payment_keys;
+    }
+
+    /**
+     * Add Vendor tax id in the payment  page
+     * @param $vendor_billing_fileds : array
+     * @param $vendor_id : int
+     * @return array
+     */
+    public function wcfm_addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
+    {
+        $gateway_slug = 'mobbex';
+        $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+        if( !$vendor_data ) $vendor_data = array();
+        $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
+        $vendor_mobbex_billing_fileds = array(
+            "mobbex" => array('label' => __('Tax ID(CUIT)', 'wc-frontend-manager'), 'name' => 'vendor_data[payment][mobbex][tax_id]', 'type' => 'number', 'in_table' => 'yes', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_mobbex', 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_mobbex', 'value' => $mobbex_tax_id ),
+        );
+        $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
+        return $vendor_billing_fileds;
     }
 }
 
