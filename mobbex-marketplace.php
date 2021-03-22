@@ -84,7 +84,6 @@ class MobbexMarketplace
         //WCFM integration
         if(get_option('mm_option_integration') === 'wcfm'){
             add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod'] );
-            add_filter( 'wcfm_marketplace_settings_fields_withdrawal_payment_keys', [$this, 'wcfm_addAdmintaxid'], 50, 2);
             add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
         }
         // Dokan vendor registration
@@ -471,8 +470,10 @@ class MobbexMarketplace
             return $vendor_cuit;
         }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
 				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-                $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+                if($vendor_id){
+                    $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+                    $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+                }
                 // If WCFM is enabled only use WCFM Vendor cuits
                 return $vendor_cuit;
         }
@@ -875,24 +876,6 @@ class MobbexMarketplace
             echo 'Excepción capturada: ',  $e->getMessage(), "\n";
         }
         return $payment_methods;    
-    }
-
-
-    /**
-     * Add admin tax id in the admin's payment  page
-     * @param $payment_keys : array
-     * @param $wcfm_withdrawal_options : array
-     * @return array
-     */
-    public function wcfm_addAdmintaxid( $payment_keys, $wcfm_withdrawal_options ) 
-    {
-        $gateway_slug = 'mobbex';
-        $withdrawal_mobbex_tax_id = isset( $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] ) ? $wcfm_withdrawal_options[$gateway_slug.'_tax_id'] : '';
-        $payment_mobbex_keys = array(
-            "withdrawal_".$gateway_slug."_tax_id" => array('label' => __('Tax Id', 'wc-multivendor-marketplace'),'name' => 'wcfm_withdrawal_options['.$gateway_slug.'_tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'label_class' => 'wcfm_title withdrawal_mode withdrawal_mode_live withdrawal_mode_'.$gateway_slug, 'value' => $withdrawal_mobbex_tax_id ),
-        );
-        $payment_keys = array_merge( $payment_keys, $payment_brain_tree_keys );
-        return $payment_keys;
     }
 
     /**
