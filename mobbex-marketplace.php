@@ -36,22 +36,17 @@ class MobbexMarketplace
     public static $github_url = "https://github.com/mobbexco/woocommerce-marketplace";
     public static $github_issues_url = "https://github.com/mobbexco/woocommerce-marketplace/issues";
 
-    
-
     public function init()
     {
-        
-        try{
-            
-        //wcfm integration class
-        require_once('wcfmmp-gateway-mobbex.php');
-
-        MobbexMarketplace::check_dependencies();
-        MobbexMarketplace::load_textdomain();
-        MobbexMarketplace::load_update_checker();
-        MobbexMarketplace::load_settings();
-
-        $this->settings = new MM_Settings(__FILE__);
+        try {
+            MobbexMarketplace::check_dependencies();
+            MobbexMarketplace::load_textdomain();
+            MobbexMarketplace::load_update_checker();
+            MobbexMarketplace::load_settings();
+            MobbexMarketplace::load_wcfm_gateway();
+        } catch (Exception $e) {
+            MobbexMarketplace::$errors[] = $e->getMessage();
+        }
 
         if (count(MobbexMarketplace::$errors)) {
 
@@ -81,8 +76,8 @@ class MobbexMarketplace
         add_filter('edited_product_cat', [$this, 'save_category_config']);
         add_filter('create_product_cat', [$this, 'save_category_config']);
 
-        //WCFM integration
-        if(get_option('mm_option_integration') === 'wcfm'){
+        // WCFM integration
+        if (get_option('mm_option_integration') === 'wcfm'){
             add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod'] );
             add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
         }
@@ -102,12 +97,7 @@ class MobbexMarketplace
             add_action('woocommerce_order_actions_end', [$this, 'add_unhold_fields']);
             add_action('woocommerce_order_action_mobbex_unhold_payment', [$this, 'process_unhold_action']);
         }
-
-        } catch (Exception $e) {
-            print_r(var_dump($e->getMessage()));
-        }
     }
-
 
     /**
      * Check dependencies.
@@ -196,6 +186,15 @@ class MobbexMarketplace
     public static function load_settings()
     {
         require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
+        return new MM_Settings(__FILE__);
+    }
+
+    /**
+     * Load WCFM Integration Class.
+     */
+    public static function load_wcfm_gateway()
+    {
+        require_once plugin_dir_path(__FILE__) . 'includes/wcfmmp-gateway-mobbex.php';
     }
 
     /**
@@ -376,7 +375,7 @@ class MobbexMarketplace
         if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<')) {
             return;
         }
-        
+
         $order = wc_get_order($order_id);
         $items = $order->get_items();
 
@@ -418,9 +417,7 @@ class MobbexMarketplace
         }
 
         return $checkout_data;
-        
     }
-
 
     /**
      * Save split data from Mobbex checkout response.
@@ -468,14 +465,14 @@ class MobbexMarketplace
             }
             // If dokan is enabled only use Dokan Vendor cuits
             return $vendor_cuit;
-        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
-				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-                if($vendor_id){
-                    $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-                    $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
-                }
-                // If WCFM is enabled only use WCFM Vendor cuits
-                return $vendor_cuit;
+        } elseif (get_option('mm_option_integration') === 'wcfm' && function_exists('wcfm_get_vendor_store_by_post')){
+            $vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
+            if($vendor_id){
+                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+                $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+            }
+            // If WCFM is enabled only use WCFM Vendor cuits
+            return $vendor_cuit;
         }
 
         // Get cuit from product
@@ -859,7 +856,6 @@ class MobbexMarketplace
         return new WP_Error('mobbex_unhold_error', __('Unhold Error: Sorry! This is not a unholdable transaction.', 'mobbex-marketplace'));
     }
 
-
     /**
      * Add Mobbex as payment method
      * @param $payment_methods : array
@@ -890,7 +886,7 @@ class MobbexMarketplace
         $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
         if( !$vendor_data ) $vendor_data = array();
         $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
-        
+
         if($mobbex_tax_id == ''){
             //if mobbex tax id is empty then it's a vendor registration and the field need to have in_table attribute
             $vendor_mobbex_billing_fileds = array(
@@ -901,7 +897,7 @@ class MobbexMarketplace
                 $gateway_slug => array('label' => __('Tax ID', 'wc-frontend-manager'), 'name' => 'payment['.$gateway_slug.'][tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_'.$gateway_slug, 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_'.$gateway_slug, 'value' => $mobbex_tax_id ),
             );
         }
-        
+
         $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
         return $vendor_billing_fileds;
     }

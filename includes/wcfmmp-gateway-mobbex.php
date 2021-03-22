@@ -1,6 +1,5 @@
 <?php
 
-
 class WCFMmp_Gateway_Mobbex {
     public $id;
     public $message = array();
@@ -13,10 +12,8 @@ class WCFMmp_Gateway_Mobbex {
         $this->payment_gateway = $this->id;
     }
 
-
     public function validate_request() {
         global $WCFMmp;
         return true;
     }
 }
-
