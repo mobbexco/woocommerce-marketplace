@@ -468,8 +468,8 @@ class MobbexMarketplace
         } elseif (get_option('mm_option_integration') === 'wcfm' && function_exists('wcfm_get_vendor_store_by_post')){
             $vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
             if($vendor_id){
-                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-                $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+                $vendor_data = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
+                $vendor_cuit = isset($vendor_data['payment']['mobbex']['tax_id']) ? $vendor_data['payment']['mobbex']['tax_id'] : null;
             }
             // If WCFM is enabled only use WCFM Vendor cuits
             return $vendor_cuit;
@@ -511,7 +511,20 @@ class MobbexMarketplace
         $default_fee = null;
 
         // Get fee from product
-        $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);
+        if(get_option('mm_option_integration') === 'wcfm'){
+            $commission_per_poduct = get_post_meta( $product_id, '_commission_per_product', true);
+            switch($commission_per_poduct){
+                case 'fixed':
+                    $vendor_fee = get_post_meta( $product_id, '_commission_fixed', true);
+                break;
+
+                case 'percent_fixed':
+                    $vendor_fee = get_post_meta( $product_id, '_commission_fixed_with_percentage', true);
+                break;
+            }
+        }else{
+            $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);
+        }
 
         // Get fee from categories
         $categories = get_the_terms($product_id, 'product_cat');
@@ -529,6 +542,32 @@ class MobbexMarketplace
             if (!empty($vendor)) {
                 $user_id = $vendor->get_id();
                 $vendor_fee = get_user_meta($user_id, 'mobbex_marketplace_fee', true);
+            }
+        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
+            $vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
+
+            if($vendor_id){
+                $vendor = wcfm_get_vendor_store_address_by_vendor( $vendor_id );
+
+                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+                $vendor_commission_mode = isset( $vendor_data['commission']['commission_mode'] ) ? $vendor_data['commission']['commission_mode'] : 'global';
+                switch($vendor_commission_mode){
+                    case 'fixed':
+                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
+                    break;
+
+                    case 'percent_fixed':
+                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
+                        if($vendor_fee == '0'){
+                            $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
+                        }
+                    break;
+
+                    case 'global':
+                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
+                        //$commission_percent     = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent']  : '0';        
+                    break;
+                }
             }
         }
 
