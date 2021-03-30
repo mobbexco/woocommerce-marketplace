@@ -78,6 +78,10 @@ class MobbexMarketplace
         add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
         add_action('dokan_new_seller_created', [$this, 'dokan_save_vendor_fields']);
 
+        // Dokan store update
+        add_action('dokan_settings_after_store_name', [$this, 'dokan_add_store_fields']);
+        add_action('dokan_store_profile_saved', [$this, 'dokan_save_vendor_fields']);
+
         if (get_option('mm_option_integration') === 'dokan') {
             // Dokan admin vendor edit
             add_action('show_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
@@ -550,7 +554,7 @@ class MobbexMarketplace
     {
         ?>
         <p class="form-row form-group form-row-wide">
-            <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex_marketplace') ?><span class="required">*</span></label>
+            <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?><span class="required">*</span></label>
             <input type="text" class="input-text form-control" name="mobbex_tax_id" id="mobbex_tax_id" required="required"/>
             <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
         </p>
@@ -682,6 +686,26 @@ class MobbexMarketplace
             // Report save error
             MobbexMarketplace::notice('error', __('Failed to save vendor Mobbex information with User Id:' . $user_id, 'mobbex-marketplace'));
         }
+    }
+
+    /**
+     * Add Mobbex fields to vendor store edit.
+     * 
+     * (Dokan hook)
+     * @param int $user_id
+     */
+    public function dokan_add_store_fields($user_id)
+    {
+        ?>
+        <div class="dokan-form-group">
+            <label class="dokan-w3 dokan-control-label" for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?></label>
+
+            <div class="dokan-w5 dokan-text-left">
+                <input type="text" name="mobbex_tax_id" id="mobbex_tax_id" required value="<?= get_user_meta($user_id, 'mobbex_tax_id', true) ?>" class="dokan-form-control">
+                <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
+            </div>
+        </div>
+        <?php
     }
 
     /**
