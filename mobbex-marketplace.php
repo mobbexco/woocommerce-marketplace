@@ -465,14 +465,14 @@ class MobbexMarketplace
             }
             // If dokan is enabled only use Dokan Vendor cuits
             return $vendor_cuit;
-        } elseif (get_option('mm_option_integration') === 'wcfm' && function_exists('wcfm_get_vendor_store_by_post')){
-            $vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-            if($vendor_id){
-                $vendor_data = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
-                $vendor_cuit = isset($vendor_data['payment']['mobbex']['tax_id']) ? $vendor_data['payment']['mobbex']['tax_id'] : null;
-            }
-            // If WCFM is enabled only use WCFM Vendor cuits
-            return $vendor_cuit;
+        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
+				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
+                if($vendor_id){
+                    $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+                    if($vendor_data) $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+                    // If WCFM is enabled only use WCFM Vendor cuits
+                    return $vendor_cuit;
+                }
         }
 
         // Get cuit from product
@@ -482,7 +482,6 @@ class MobbexMarketplace
         $categories = get_the_terms($product_id, 'product_cat');
         foreach ($categories as $category) {
             $category_cuit = get_term_meta($category->term_id, 'mobbex_marketplace_cuit', true);
-
             // Break foreach on first match
             if (!empty($category_cuit))
                 break;
@@ -494,7 +493,7 @@ class MobbexMarketplace
         } else if (!empty($category_cuit)) {
             return $category_cuit;
         }
-
+        
         return null;
     }
 
@@ -510,32 +509,23 @@ class MobbexMarketplace
         $vendor_fee = null;
         $default_fee = null;
 
+        //Get product using woocommerce method
+        $product = wc_get_product( $product_id );
         // Get fee from product
-        if(get_option('mm_option_integration') === 'wcfm'){
-            $commission_per_poduct = get_post_meta( $product_id, '_commission_per_product', true);
-            switch($commission_per_poduct){
-                case 'fixed':
-                    $vendor_fee = get_post_meta( $product_id, '_commission_fixed', true);
-                break;
-
-                case 'percent_fixed':
-                    $vendor_fee = get_post_meta( $product_id, '_commission_fixed_with_percentage', true);
-                break;
-            }
+        if(get_option('mm_option_integration') === 'wcfm' ){
+            $product_fee = $this->wcfm_product_fee($product_id,$product);
         }else{
             $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);
         }
-
         // Get fee from categories
         $categories = get_the_terms($product_id, 'product_cat');
         foreach ($categories as $category) {
             $category_fee = get_term_meta($category->term_id, 'mobbex_marketplace_fee', true);
-
             // Break foreach on first match
             if (!empty($category_fee))
                 break;
         }
-
+        
         // Get fee from Dokan Vendor
         if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_vendor_by_product')) {
             $vendor = dokan_get_vendor_by_product($product_id);
@@ -543,31 +533,11 @@ class MobbexMarketplace
                 $user_id = $vendor->get_id();
                 $vendor_fee = get_user_meta($user_id, 'mobbex_marketplace_fee', true);
             }
-        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
-            $vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-
+        } elseif (get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
+            //Get fee from WCFM Vendor
+            $vendor_id  = wcfm_get_vendor_id_by_post($product_id);
             if($vendor_id){
-                $vendor = wcfm_get_vendor_store_address_by_vendor( $vendor_id );
-
-                $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-                $vendor_commission_mode = isset( $vendor_data['commission']['commission_mode'] ) ? $vendor_data['commission']['commission_mode'] : 'global';
-                switch($vendor_commission_mode){
-                    case 'fixed':
-                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
-                    break;
-
-                    case 'percent_fixed':
-                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
-                        if($vendor_fee == '0'){
-                            $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
-                        }
-                    break;
-
-                    case 'global':
-                        $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
-                        //$commission_percent     = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent']  : '0';        
-                    break;
-                }
+                $vendor_fee = $this->wcfm_vendor_fee($vendor_id,$product);
             }
         }
 
@@ -586,6 +556,89 @@ class MobbexMarketplace
         }
 
         return 0;
+    }
+
+    /**
+     * Return WCFM product fee
+     * @param $product_id : integer
+     * @param $product : Product
+     * @return real
+     */
+    private function wcfm_product_fee($product_id, $product ){
+        $product_commission_data = get_post_meta($product_id, '_wcfmmp_commission', true);
+        //if the product commission is set
+        if($product_commission_data){
+            // Comission modes : fixed / percent / percent + fixed, global is calculated in vendor fee function
+            switch($product_commission_data['commission_mode']){
+                case 'fixed':
+                    $product_fee = $product_commission_data['commission_fixed'];
+                break;
+                case 'percent':
+                    $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
+                    $product_fee = $commission_percent * $product->get_price() / 100;
+                break;
+                case 'percent_fixed':
+                    $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
+                    $commission_fixed = $product_commission_data['commission_fixed'];
+                    $product_fee = ($commission_percent * $product->get_price() / 100) + $commission_fixed;
+                break;         
+            }
+        }else{
+            $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);    
+        }
+
+        return $product_fee;
+    }
+
+    /**
+     * Return WCFM vendor fee
+     * @param $vendor_id : integer
+     * @param $product : Product
+     * @return real
+     */
+    private function wcfm_vendor_fee($vendor_id, $product ){
+        $vendor_fee = null;
+        $vendor = wcfm_get_vendor_store_address_by_vendor( $vendor_id );
+        $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
+        // Comission modes : fixed / percent / percent + fixed or global in case is not defined
+        $vendor_commission_mode        = isset( $vendor_data['commission']['commission_mode'] ) ? $vendor_data['commission']['commission_mode'] : 'global';
+        switch($vendor_commission_mode){
+            case 'fixed':
+                $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
+            break;
+            case 'percent':
+                $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
+                if($commission_percent)
+                    $vendor_fee = ($commission_percent * $product->get_price() / 100);
+            break;
+            case 'percent_fixed':
+                $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
+                $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
+                if($commission_percent)
+                    $vendor_fee = ($commission_percent * $product->get_price() / 100) + $vendor_fee;
+            break;
+            case 'global':
+                //Get commission options from admin settings
+                $wcfm_commission_options = get_option( 'wcfm_commission_options', array() );
+                $comission_mode = $wcfm_commission_options['commission_mode'];
+                switch($comission_mode){
+                    case 'fixed':
+                        $vendor_fee = isset( $wcfm_commission_options['commission_fixed'] ) ? $wcfm_commission_options['commission_fixed'] : '0';    
+                    break;
+                    case 'percent':
+                        $vendor_fee = $wcfm_commission_options['commission_percent'] * $product->get_price() / 100;
+                    break;   
+                    case 'percent_fixed':
+                        $vendor_fee = isset( $wcfm_commission_options['commission_fixed'] ) ? $wcfm_commission_options['commission_fixed'] : '0';    
+                        $commission_percent = isset( $wcfm_commission_options['commission_percent'] ) ? $wcfm_commission_options['commission_percent'] : '0';        
+                        if($commission_percent)
+                            $vendor_fee = ($commission_percent * $product->get_price() / 100) + $vendor_fee;
+                    break;
+                }
+            break;
+        }
+        
+        return $vendor_fee;
     }
 
     /**
@@ -915,6 +968,8 @@ class MobbexMarketplace
 
     /**
      * Add Vendor tax id in the payment  page
+     * Works only in Vendor registration and edit pages
+     * Not working for Admin 
      * @param $vendor_billing_fileds : array
      * @param $vendor_id : int
      * @return array
@@ -925,9 +980,9 @@ class MobbexMarketplace
         $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
         if( !$vendor_data ) $vendor_data = array();
         $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
-
-        if($mobbex_tax_id == ''){
-            //if mobbex tax id is empty then it's a vendor registration and the field need to have in_table attribute
+        
+        //if the social key in the array is empty then it's a vendor registration and the field need to have in_table attribute
+        if(sizeof($vendor_data['social']) == 0){
             $vendor_mobbex_billing_fileds = array(
                 "mobbex" => array('label' => __('Tax ID(CUIT)', 'wc-frontend-manager'), 'name' => 'vendor_data[payment][mobbex][tax_id]', 'type' => 'number', 'in_table' => 'yes', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_mobbex', 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_mobbex', 'value' => $mobbex_tax_id ),
             );
@@ -936,7 +991,7 @@ class MobbexMarketplace
                 $gateway_slug => array('label' => __('Tax ID', 'wc-frontend-manager'), 'name' => 'payment['.$gateway_slug.'][tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_'.$gateway_slug, 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_'.$gateway_slug, 'value' => $mobbex_tax_id ),
             );
         }
-
+        
         $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
         return $vendor_billing_fileds;
     }
