@@ -26,6 +26,9 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.1.3 :: 2021-03-31
+- Integrate Dokan commission methods.
+
 ### 1.1.2 :: 2021-03-30
 - Add CUIT config to store vendor options.
 
