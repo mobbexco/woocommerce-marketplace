@@ -62,28 +62,31 @@ class MobbexMarketplace
         // Save split data from Mobbex response
         add_action('mobbex_checkout_process', [$this, 'save_mobbex_response'], 10 , 2);
 
-        // Product config management
-        add_filter('woocommerce_product_data_tabs', [$this, 'add_product_tab']);
-        add_action('woocommerce_product_data_panels', [$this, 'add_product_config']);
-        add_action('woocommerce_process_product_meta', [$this, 'save_product_config']);
+        // No integrations hooks
+        if (empty(get_option('mm_option_integration'))) {
+            // Product config management
+            add_filter('woocommerce_product_data_tabs', [$this, 'add_product_tab']);
+            add_action('woocommerce_product_data_panels', [$this, 'add_product_config']);
+            add_action('woocommerce_process_product_meta', [$this, 'save_product_config']);
 
-        // Category config management
-        add_filter('product_cat_add_form_fields', [$this, 'add_category_config']);
-        add_filter('product_cat_edit_form_fields', [$this, 'add_category_config']);
-        add_filter('edited_product_cat', [$this, 'save_category_config']);
-        add_filter('create_product_cat', [$this, 'save_category_config']);
-
-        // Dokan vendor registration
-        add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
-        add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
-        add_action('dokan_new_seller_created', [$this, 'dokan_save_vendor_fields']);
-
-        // Dokan store update
-        add_action('dokan_settings_after_store_name', [$this, 'dokan_add_store_fields']);
-        add_action('dokan_store_profile_saved', [$this, 'dokan_save_vendor_fields']);
+            // Category config management
+            add_filter('product_cat_add_form_fields', [$this, 'add_category_config']);
+            add_filter('product_cat_edit_form_fields', [$this, 'add_category_config']);
+            add_filter('edited_product_cat', [$this, 'save_category_config']);
+            add_filter('create_product_cat', [$this, 'save_category_config']);
+        }
 
         if (get_option('mm_option_integration') === 'dokan') {
-            // Dokan admin vendor edit
+            // Vendor registration
+            add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
+            add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
+            add_action('dokan_new_seller_created', [$this, 'dokan_save_vendor_fields']);
+
+            // Store edit
+            add_action('dokan_settings_after_store_name', [$this, 'dokan_add_store_fields']);
+            add_action('dokan_store_profile_saved', [$this, 'dokan_save_vendor_fields']);
+
+            // Admin vendor edit
             add_action('show_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
             add_action('edit_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
             add_action('dokan_process_seller_meta_fields', [$this, 'dokan_admin_save_vendor_fields']);
@@ -251,7 +254,7 @@ class MobbexMarketplace
     {
         echo '<div id="mobbex_marketplace" class="panel woocommerce_options_panel hidden">
         <hr><h2>Mobbex Marketplace</h2>';
-        
+
         $cuit_field = [
             'id'          => 'mobbex_marketplace_cuit',
             'value'       => get_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', true),
@@ -268,10 +271,7 @@ class MobbexMarketplace
             'desc_tip'    => true
         ];
 
-        // Only add cuit field if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
-            woocommerce_wp_text_input($cuit_field); 
-        }
+        woocommerce_wp_text_input($cuit_field);
         woocommerce_wp_text_input($fee_field); 
         echo '</div>';
     }
@@ -286,10 +286,7 @@ class MobbexMarketplace
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
         $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
 
-        // Only save product cuit if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
-            update_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', $cuit);
-        }
+        update_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', $cuit);
         update_post_meta(get_the_ID(), 'mobbex_marketplace_fee', $fee);
     }
 
@@ -305,7 +302,6 @@ class MobbexMarketplace
                 <h2>Mobbex Marketplace</h2>
             </th>
         </tr>
-        <?php if (get_option('mm_option_integration') !== 'dokan') { ?>
             <tr class="form-field">
                 <th scope="row" valign="top">
                     <label for="mobbex_marketplace_cuit"><?= __('Tax Id', 'mobbex-marketplace'); ?></label>
@@ -318,7 +314,6 @@ class MobbexMarketplace
                     </span>
                 </td>
             </tr>
-        <?php } ?>
 
         <tr class="form-field">
             <th scope="row" valign="top" style="border-bottom: 1px solid #ddd;">
@@ -345,10 +340,7 @@ class MobbexMarketplace
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
         $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
 
-        // Only save category cuit if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
-            update_term_meta($term_id, 'mobbex_marketplace_cuit', $cuit);
-        }
+        update_term_meta($term_id, 'mobbex_marketplace_cuit', $cuit);
         update_term_meta($term_id, 'mobbex_marketplace_fee', $fee);
     }
 
@@ -364,42 +356,87 @@ class MobbexMarketplace
         }
 
         $order = wc_get_order($order_id);
-        $items = $order->get_items();
 
-        foreach ($items as $item) {
-            $product_id = $item->get_product()->get_id();
+        if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_sellers_by')) {
+            // Get vendors with items from order
+            $vendors = dokan_get_sellers_by($order);
 
-            // Get configs from product/category/vendor/default
-            $cuit = $this->get_cuit($product_id);
-            $fee = $this->get_fee($product_id);
-            $hold = $this->get_hold($product_id);
-
-            if (!empty($cuit)) {
-                // Check if a product with the same cuit is already added
-                if (!empty($checkout_data['split'])) {
-                    foreach ($checkout_data['split'] as $key => $payment) {
-                        if ($payment['tax_id'] === $cuit) {
-                            // Combine values
-                            $payment['total'] += $item->get_total();
-                            $payment['fee'] += $fee;
-                            $payment['description'] .= ", $product_id";
-
-                            $checkout_data['split'][$key] = $payment;
-                            // Go to next item
-                            continue 2;
-                        }
-                    }
+            foreach ($vendors as $vendor_id => $items) {
+                // Get total price, total earning (for fee) and product IDs from items
+                $total       = 0;
+                $earning     = 0;
+                $product_ids = [];
+                foreach ($items as $item) {
+                    $total        += $item->get_total();
+                    $earning      += dokan()->commission->get_earning_by_product($item->get_product());
+                    $product_ids[] = $item->get_product()->get_id();
                 }
 
-                // Add split payment
+                // Split data
+                $cuit        = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+                $description = "Split payment - CUIT: $cuit - Product IDs: " . implode(", ", $product_ids);
+                $reference   = $checkout_data['reference'] . '_split_' . $cuit;
+                $fee         = $total - $earning;
+                $hold        = (get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes');
+
                 $checkout_data['split'][] = [
                     'tax_id' => $cuit,
-                    'description' => "Cuit $cuit. Product IDs: $product_id",
-                    'total' => $item->get_total(),
-                    'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                    'description' => $description,
+                    'total' => $total,
+                    'reference' => $reference,
                     'fee' => $fee,
                     'hold' => $hold,
                 ];
+            }
+        } else {
+            $items = $order->get_items();
+
+            foreach ($items as $item) {
+                $product_id = $item->get_product()->get_id();
+
+                // Get configs from product/category/vendor/default
+                $cuit = $this->get_cuit($product_id);
+                $fee = $this->get_fee($product_id);
+                $hold = $this->get_hold($product_id);
+
+                if (!empty($cuit)) {
+                    // Check if a product with the same cuit is already added
+                    if (!empty($checkout_data['split'])) {
+                        foreach ($checkout_data['split'] as $key => $payment) {
+                            if ($payment['tax_id'] === $cuit) {
+                                // Combine values
+                                $payment['total'] += $item->get_total();
+                                $payment['fee'] += $fee;
+                                $payment['description'] .= ", $product_id";
+    
+                                $checkout_data['split'][$key] = $payment;
+                                // Go to next item
+                                continue 2;
+                            }
+                        }
+                    }
+
+                    // Add split payment
+                    $checkout_data['split'][] = [
+                        'tax_id' => $cuit,
+                        'description' => "Cuit $cuit. Product IDs: $product_id",
+                        'total' => $item->get_total(),
+                        'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                        'fee' => $fee,
+                        'hold' => $hold,
+                    ];
+                }
+            }
+        }
+
+        // Catch empty CUITs
+        if (isset($checkout_data['split'])) {
+            foreach ($checkout_data['split'] as $payment) {
+                if (empty($payment['tax_id'])) {
+                    $error = sprintf(__('Mobbex Marketplace ERROR: Attempt to make a payment with an empty CUIT. Order Id %s', 'mobbex-marketplace'), $order_id);
+                    error_log($error);
+                    exit;
+                }
             }
         }
 
@@ -529,6 +566,7 @@ class MobbexMarketplace
     }
 
     /**
+     * @deprecated
      * Get hold from Dokan Vendor.
      * @param int $product_id
      */
@@ -633,19 +671,6 @@ class MobbexMarketplace
 
                 <tr>
                     <th>
-                        <label for="mobbex_marketplace_fee"><?= __('Fee (optional)', 'mobbex-marketplace') ?></label>
-                    </th>
-                    <td>
-                        <input type="text" name="mobbex_marketplace_fee" id="mobbex_marketplace_fee" class="regular-text"
-                        value="<?= get_user_meta($user->ID, 'mobbex_marketplace_fee', true) ?>">
-                        <br/>
-                        <span class="description"><?= __('Set admin commission to seller through Mobbex', 'mobbex-marketplace') ?>
-                        </span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th>
                         <?= __('Payment Withholding', 'mobbex-marketplace') ?>
                     </th>
                     <td>
@@ -676,7 +701,6 @@ class MobbexMarketplace
         if (!empty($user_id)) {
             // If Mobbex values is sent save it
             $tax_id = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
-            $fee = isset($post_data['mobbex_marketplace_fee']) ? sanitize_text_field($post_data['mobbex_marketplace_fee']) : '';
             $hold = isset($post_data['mobbex_marketplace_hold']) ? 'yes' : 'no';
 
             update_user_meta($user_id, 'mobbex_tax_id', $tax_id);
