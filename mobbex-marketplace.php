@@ -11,6 +11,8 @@
 
 class MobbexMarketplace
 {
+    public static $version = '1.1.3';
+
     /**
      * Settings.
      */
@@ -20,6 +22,7 @@ class MobbexMarketplace
      * Errors.
      */
     public static $errors = [];
+
     /**
      * Mobbex URL.
      */
@@ -358,17 +361,17 @@ class MobbexMarketplace
         $order = wc_get_order($order_id);
 
         if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_sellers_by')) {
-            // Get vendors with items from order
+            // Get vendors with Product items from order
             $vendors = dokan_get_sellers_by($order);
 
             foreach ($vendors as $vendor_id => $items) {
-                // Get total price, total earning (for fee) and product IDs from items
+                // Get total price, fee and product IDs from items
                 $total       = 0;
-                $earning     = 0;
+                $fee         = 0;
                 $product_ids = [];
                 foreach ($items as $item) {
                     $total        += $item->get_total();
-                    $earning      += dokan()->commission->get_earning_by_product($item->get_product());
+                    $fee          += dokan()->commission->get_earning_by_product($item->get_product(), 'admin') * $item->get_quantity();
                     $product_ids[] = $item->get_product()->get_id();
                 }
 
@@ -376,7 +379,6 @@ class MobbexMarketplace
                 $cuit        = get_user_meta($vendor_id, 'mobbex_tax_id', true);
                 $description = "Split payment - CUIT: $cuit - Product IDs: " . implode(", ", $product_ids);
                 $reference   = $checkout_data['reference'] . '_split_' . $cuit;
-                $fee         = $total - $earning;
                 $hold        = (get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes');
 
                 $checkout_data['split'][] = [
@@ -387,6 +389,21 @@ class MobbexMarketplace
                     'fee' => $fee,
                     'hold' => $hold,
                 ];
+            }
+            // Get shipping items from order
+            $shippings = $order->get_items('shipping');
+
+            // Get Shipping Manager
+            $shipping_manager = get_option('mm_option_shipping_manager');
+
+            // Add checkout data according the Shipping Manager configured
+            if ($shipping_manager === 'custom') {
+                $checkout_data = $this->add_custom_shippings($shippings, $checkout_data);
+            } else if ($shipping_manager === 'dokan') {
+                $checkout_data = $this->add_dokan_shippings($shippings, $checkout_data);
+            } else {
+                error_log(__('Mobbex Marketplace ERROR: Shipping Manager is not configured.', 'mobbex-marketplace'));
+                exit;
             }
         } else {
             $items = $order->get_items();
@@ -438,6 +455,19 @@ class MobbexMarketplace
                     exit;
                 }
             }
+        }
+
+        // Add Plugin versions
+        $checkout_data['options']['platform']['extensions'][] = [
+            'name'    => 'mobbex_marketplace',
+            'version' => MobbexMarketplace::$version,
+        ];
+
+        if (function_exists('dokan')) {
+            $checkout_data['options']['platform']['extensions'][] = [
+                'name'    => 'dokan',
+                'version' => dokan()->version,
+            ];
         }
 
         return $checkout_data;
@@ -877,6 +907,121 @@ class MobbexMarketplace
             }
         }
         return new WP_Error('mobbex_unhold_error', __('Unhold Error: Sorry! This is not a unholdable transaction.', 'mobbex-marketplace'));
+    }
+
+    /**
+     * Add Dokan Pro Shippings to checkout data.
+     * 
+     * @param array $shipping
+     * @return array $checkout_data
+     */
+    public function add_dokan_shippings($shippings, $checkout_data)
+    {
+        // Get Dokan shipping recipient configuration
+        $shipping_fee_recipient = dokan_get_option('shipping_fee_recipient', 'dokan_selling', 'seller');
+        // Exit if config data do not look fine
+        if ($shipping_fee_recipient != 'seller' && $shipping_fee_recipient != 'admin') {
+            error_log(__('Mobbex Marketplace ERROR: Dokan Shipping Recipient incompatible.', 'mobbex-marketplace'));
+            exit;
+        }
+
+        foreach ($shippings as $shipping) {
+            // Get Vendor and CUIT from shipping
+            $vendor_id = $shipping->get_meta('seller_id');
+            $cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+
+            foreach ($checkout_data['split'] as $key => $payment) {
+                // Add shipping total to vendor total (in split payment array)
+                if ($payment['tax_id'] == $cuit) {
+                    $checkout_data['split'][$key]['total'] += $shipping->get_total();
+
+                    if ($shipping_fee_recipient === 'admin') {
+                        // If it must be paid by admin, it must be added as a fee
+                        $checkout_data['split'][$key]['fee'] += $shipping->get_total();
+                    }
+                }
+            }
+
+            // Exit if assigned seller did not have any products in the Order
+            if (!in_array($cuit, array_column($checkout_data['split'], 'tax_id'))) {
+                error_log(__('Mobbex Marketplace ERROR: Shipping from a seller without own products in the order.', 'mobbex-marketplace'));
+                exit;
+            }
+        }
+
+        return $checkout_data;
+    }
+
+    /**
+     * Add Custom Configured Shippings to checkout data.
+     * 
+     * @param array $shipping
+     * @return array $checkout_data
+     */
+    public function add_custom_shippings($shippings, $checkout_data)
+    {
+        $custom_shippings_configs = json_decode(get_option('mm_option_custom_shipping'), true);
+        // Exit if config data do not look fine
+        if (empty($custom_shippings_configs)) {
+            error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs active but empty.', 'mobbex-marketplace'));
+            exit;
+        }
+
+        try {
+            foreach ($shippings as $shipping) {
+                foreach ($custom_shippings_configs as $shipping_config) {
+                    // Get options
+                    $method = $shipping_config['shipping_method'];
+                    $type   = $shipping_config['type'];
+                    $cuit   = (isset($shipping_config['cuit'])) ? $shipping_config['cuit'] : '';
+
+                    if ($shipping->get_name() == $method) {
+                        if ($type == 'cuit') {
+                            // Add as a normal split payment
+                            $checkout_data['split'][] = [
+                                'tax_id' => $cuit,
+                                'description' => "Shipping Method $method.Cuit $cuit.",
+                                'total' => $shipping->get_total(),
+                                'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                                'fee' => null,
+                                'hold' => null,
+                            ];
+
+                            break;
+                        } else if ($type == 'vendor' || $type == 'admin') {
+                            // Get Vendor and CUIT from shipping
+                            $vendor_id = $shipping->get_meta('seller_id');
+                            $vendor_cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+
+                            foreach ($checkout_data['split'] as $key => $payment) {
+                                // Add shipping total to vendor total (in split payment array)
+                                if ($payment['tax_id'] == $vendor_cuit) {
+                                    $checkout_data['split'][$key]['total'] += $shipping->get_total();
+
+                                    if ($type === 'admin') {
+                                        // If it must be paid by admin, it must be added as a fee
+                                        $checkout_data['split'][$key]['fee'] += $shipping->get_total();
+                                    }
+                                }
+                            }
+
+                            // Exit if shipping seller id did not have any products in the Order
+                            if (!in_array($vendor_cuit, array_column($checkout_data['split'], 'tax_id'))) {
+                                error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs active but empty.', 'mobbex-marketplace'));
+                                exit;
+                            }
+
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs incorrect format.' . $e->getMessage(), 'mobbex-marketplace'));
+            exit;
+        }
+
+        return $checkout_data;
     }
 }
 
