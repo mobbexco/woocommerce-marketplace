@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mobbex Marketplace
  * Description: Plugin to extend Mobbex Marketplace functionality.
- * Version: 1.1.1
+ * Version: 1.2.0
  * WC tested up to: 4.2.2
  * Author: mobbex.com
  * Author URI: https://mobbex.com/
@@ -11,6 +11,8 @@
 
 class MobbexMarketplace
 {
+    public static $version = '1.2.0';
+
     /**
      * Settings.
      */
@@ -20,6 +22,7 @@ class MobbexMarketplace
      * Errors.
      */
     public static $errors = [];
+
     /**
      * Mobbex URL.
      */
@@ -65,29 +68,31 @@ class MobbexMarketplace
         // Save split data from Mobbex response
         add_action('mobbex_checkout_process', [$this, 'save_mobbex_response'], 10 , 2);
 
-        // Product config management
-        add_filter('woocommerce_product_data_tabs', [$this, 'add_product_tab']);
-        add_action('woocommerce_product_data_panels', [$this, 'add_product_config']);
-        add_action('woocommerce_process_product_meta', [$this, 'save_product_config']);
+        // No integrations hooks
+        if (empty(get_option('mm_option_integration'))) {
+            // Product config management
+            add_filter('woocommerce_product_data_tabs', [$this, 'add_product_tab']);
+            add_action('woocommerce_product_data_panels', [$this, 'add_product_config']);
+            add_action('woocommerce_process_product_meta', [$this, 'save_product_config']);
 
-        // Category config management
-        add_filter('product_cat_add_form_fields', [$this, 'add_category_config']);
-        add_filter('product_cat_edit_form_fields', [$this, 'add_category_config']);
-        add_filter('edited_product_cat', [$this, 'save_category_config']);
-        add_filter('create_product_cat', [$this, 'save_category_config']);
-
-        // WCFM integration
-        if (get_option('mm_option_integration') === 'wcfm'){
-            add_filter( 'wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod'] );
-            add_filter( 'wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
+            // Category config management
+            add_filter('product_cat_add_form_fields', [$this, 'add_category_config']);
+            add_filter('product_cat_edit_form_fields', [$this, 'add_category_config']);
+            add_filter('edited_product_cat', [$this, 'save_category_config']);
+            add_filter('create_product_cat', [$this, 'save_category_config']);
         }
-        // Dokan vendor registration
-        add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
-        add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
-        add_action('dokan_new_seller_created', [$this, 'dokan_save_vendor_fields']);
 
         if (get_option('mm_option_integration') === 'dokan') {
-            // Dokan admin vendor edit
+            // Vendor registration
+            add_action('dokan_seller_registration_field_after', [$this, 'dokan_add_vendor_fields']);
+            add_action('dokan_seller_registration_required_fields', [$this, 'dokan_validate_vendor_fields']);
+            add_action('dokan_new_seller_created', [$this, 'dokan_save_vendor_fields']);
+
+            // Store edit
+            add_action('dokan_settings_after_store_name', [$this, 'dokan_add_store_fields']);
+            add_action('dokan_store_profile_saved', [$this, 'dokan_save_vendor_fields']);
+
+            // Admin vendor edit
             add_action('show_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
             add_action('edit_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
             add_action('dokan_process_seller_meta_fields', [$this, 'dokan_admin_save_vendor_fields']);
@@ -96,6 +101,12 @@ class MobbexMarketplace
             add_action('woocommerce_order_actions', [$this, 'add_unhold_actions']);
             add_action('woocommerce_order_actions_end', [$this, 'add_unhold_fields']);
             add_action('woocommerce_order_action_mobbex_unhold_payment', [$this, 'process_unhold_action']);
+        }
+
+        // WCFM integration
+        if (get_option('mm_option_integration') === 'wcfm'){
+            add_filter('wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod']);
+            add_filter('wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
         }
     }
 
@@ -264,7 +275,7 @@ class MobbexMarketplace
     {
         echo '<div id="mobbex_marketplace" class="panel woocommerce_options_panel hidden">
         <hr><h2>Mobbex Marketplace</h2>';
-        
+
         $cuit_field = [
             'id'          => 'mobbex_marketplace_cuit',
             'value'       => get_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', true),
@@ -281,10 +292,7 @@ class MobbexMarketplace
             'desc_tip'    => true
         ];
 
-        // Only add cuit field if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan' && get_option('mm_option_integration') !== 'wcfm') {
-            woocommerce_wp_text_input($cuit_field); 
-        }
+        woocommerce_wp_text_input($cuit_field);
         woocommerce_wp_text_input($fee_field); 
         echo '</div>';
     }
@@ -299,10 +307,7 @@ class MobbexMarketplace
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
         $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
 
-        // Only save product cuit if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
-            update_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', $cuit);
-        }
+        update_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', $cuit);
         update_post_meta(get_the_ID(), 'mobbex_marketplace_fee', $fee);
     }
 
@@ -318,7 +323,6 @@ class MobbexMarketplace
                 <h2>Mobbex Marketplace</h2>
             </th>
         </tr>
-        <?php if (get_option('mm_option_integration') !== 'dokan') { ?>
             <tr class="form-field">
                 <th scope="row" valign="top">
                     <label for="mobbex_marketplace_cuit"><?= __('Tax Id', 'mobbex-marketplace'); ?></label>
@@ -331,7 +335,6 @@ class MobbexMarketplace
                     </span>
                 </td>
             </tr>
-        <?php } ?>
 
         <tr class="form-field">
             <th scope="row" valign="top" style="border-bottom: 1px solid #ddd;">
@@ -358,10 +361,7 @@ class MobbexMarketplace
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
         $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
 
-        // Only save category cuit if there are no active integrations
-        if (get_option('mm_option_integration') !== 'dokan') {
-            update_term_meta($term_id, 'mobbex_marketplace_cuit', $cuit);
-        }
+        update_term_meta($term_id, 'mobbex_marketplace_cuit', $cuit);
         update_term_meta($term_id, 'mobbex_marketplace_fee', $fee);
     }
 
@@ -377,43 +377,115 @@ class MobbexMarketplace
         }
 
         $order = wc_get_order($order_id);
-        $items = $order->get_items();
 
-        foreach ($items as $item) {
-            $product_id = $item->get_product()->get_id();
+        if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_sellers_by')) {
+            // Get vendors with Product items from order
+            $vendors = dokan_get_sellers_by($order);
 
-            // Get configs from product/category/vendor/default
-            $cuit = $this->get_cuit($product_id);
-            $fee = $this->get_fee($product_id);
-            $hold = $this->get_hold($product_id);
-
-            if (!empty($cuit)) {
-                // Check if a product with the same cuit is already added
-                if (!empty($checkout_data['split'])) {
-                    foreach ($checkout_data['split'] as $key => $payment) {
-                        if ($payment['tax_id'] === $cuit) {
-                            // Combine values
-                            $payment['total'] += $item->get_total();
-                            $payment['fee'] += $fee;
-                            $payment['description'] .= ", $product_id";
-
-                            $checkout_data['split'][$key] = $payment;
-                            // Go to next item
-                            continue 2;
-                        }
-                    }
+            foreach ($vendors as $vendor_id => $items) {
+                // Get total price, fee and product IDs from items
+                $total       = 0;
+                $fee         = 0;
+                $product_ids = [];
+                foreach ($items as $item) {
+                    $total        += $item->get_total();
+                    $fee          += dokan()->commission->get_earning_by_product($item->get_product(), 'admin') * $item->get_quantity();
+                    $product_ids[] = $item->get_product()->get_id();
                 }
 
-                // Add split payment
+                // Split data
+                $cuit        = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+                $description = "Split payment - CUIT: $cuit - Product IDs: " . implode(", ", $product_ids);
+                $reference   = $checkout_data['reference'] . '_split_' . $cuit;
+                $hold        = (get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes');
+
                 $checkout_data['split'][] = [
                     'tax_id' => $cuit,
-                    'description' => "Cuit $cuit. Product IDs: $product_id",
-                    'total' => $item->get_total(),
-                    'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                    'description' => $description,
+                    'total' => $total,
+                    'reference' => $reference,
                     'fee' => $fee,
                     'hold' => $hold,
                 ];
             }
+            // Get shipping items from order
+            $shippings = $order->get_items('shipping');
+
+            // Get Shipping Manager
+            $shipping_manager = get_option('mm_option_shipping_manager');
+
+            // Add checkout data according the Shipping Manager configured
+            if ($shipping_manager === 'custom') {
+                $checkout_data = $this->add_custom_shippings($shippings, $checkout_data);
+            } else if ($shipping_manager === 'dokan') {
+                $checkout_data = $this->add_dokan_shippings($shippings, $checkout_data);
+            } else {
+                error_log(__('Mobbex Marketplace ERROR: Shipping Manager is not configured.', 'mobbex-marketplace'));
+                exit;
+            }
+        } else {
+            $items = $order->get_items();
+
+            foreach ($items as $item) {
+                $product_id = $item->get_product()->get_id();
+
+                // Get configs from product/category/vendor/default
+                $cuit = $this->get_cuit($product_id);
+                $fee = $this->get_fee($product_id);
+                $hold = $this->get_hold($product_id);
+
+                if (!empty($cuit)) {
+                    // Check if a product with the same cuit is already added
+                    if (!empty($checkout_data['split'])) {
+                        foreach ($checkout_data['split'] as $key => $payment) {
+                            if ($payment['tax_id'] === $cuit) {
+                                // Combine values
+                                $payment['total'] += $item->get_total();
+                                $payment['fee'] += $fee;
+                                $payment['description'] .= ", $product_id";
+    
+                                $checkout_data['split'][$key] = $payment;
+                                // Go to next item
+                                continue 2;
+                            }
+                        }
+                    }
+
+                    // Add split payment
+                    $checkout_data['split'][] = [
+                        'tax_id' => $cuit,
+                        'description' => "Cuit $cuit. Product IDs: $product_id",
+                        'total' => $item->get_total(),
+                        'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                        'fee' => $fee,
+                        'hold' => $hold,
+                    ];
+                }
+            }
+        }
+
+        // Catch empty CUITs
+        if (isset($checkout_data['split'])) {
+            foreach ($checkout_data['split'] as $payment) {
+                if (empty($payment['tax_id'])) {
+                    $error = sprintf(__('Mobbex Marketplace ERROR: Attempt to make a payment with an empty CUIT. Order Id %s', 'mobbex-marketplace'), $order_id);
+                    error_log($error);
+                    exit;
+                }
+            }
+        }
+
+        // Add Plugin versions
+        $checkout_data['options']['platform']['extensions'][] = [
+            'name'    => 'mobbex_marketplace',
+            'version' => MobbexMarketplace::$version,
+        ];
+
+        if (function_exists('dokan')) {
+            $checkout_data['options']['platform']['extensions'][] = [
+                'name'    => 'dokan',
+                'version' => dokan()->version,
+            ];
         }
 
         return $checkout_data;
@@ -444,7 +516,6 @@ class MobbexMarketplace
         }
     }
 
-
     /**
      * Get cuit from vendor/product/category.
      * @param int $product_id
@@ -456,7 +527,7 @@ class MobbexMarketplace
         $product_cuit = null;
         $category_cuit = null;
 
-        // Get cuit from Dokan Vendor
+        // Get cuit from Vendor
         if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_vendor_by_product')) {
             $vendor = dokan_get_vendor_by_product($product_id);
             if (!empty($vendor)) {
@@ -465,14 +536,14 @@ class MobbexMarketplace
             }
             // If dokan is enabled only use Dokan Vendor cuits
             return $vendor_cuit;
-        }elseif(get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
-				$vendor_id  = wcfm_get_vendor_id_by_post( $product_id );
-                if($vendor_id){
-                    $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-                    if($vendor_data) $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
-                    // If WCFM is enabled only use WCFM Vendor cuits
-                    return $vendor_cuit;
-                }
+        } else if (get_option('mm_option_integration') === 'wcfm' && function_exists('wcfm_get_vendor_store_by_post')){
+            $vendor_id = wcfm_get_vendor_id_by_post($product_id);
+            if($vendor_id){
+                $vendor_data = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
+                if($vendor_data) $vendor_cuit = $vendor_data['payment']['mobbex']['tax_id'];
+                // If WCFM is enabled only use WCFM Vendor cuits
+                return $vendor_cuit;
+            }
         }
 
         // Get cuit from product
@@ -493,7 +564,7 @@ class MobbexMarketplace
         } else if (!empty($category_cuit)) {
             return $category_cuit;
         }
-        
+
         return null;
     }
 
@@ -525,7 +596,7 @@ class MobbexMarketplace
             if (!empty($category_fee))
                 break;
         }
-        
+
         // Get fee from Dokan Vendor
         if (get_option('mm_option_integration') === 'dokan' && function_exists('dokan_get_vendor_by_product')) {
             $vendor = dokan_get_vendor_by_product($product_id);
@@ -533,8 +604,8 @@ class MobbexMarketplace
                 $user_id = $vendor->get_id();
                 $vendor_fee = get_user_meta($user_id, 'mobbex_marketplace_fee', true);
             }
-        } elseif (get_option('mm_option_integration') === 'wcfm' && function_exists( 'wcfm_get_vendor_store_by_post' )){
-            //Get fee from WCFM Vendor
+        } else if (get_option('mm_option_integration') === 'wcfm' && function_exists('wcfm_get_vendor_store_by_post')){
+            // Get fee from WCFM Vendor
             $vendor_id  = wcfm_get_vendor_id_by_post($product_id);
             if($vendor_id){
                 $vendor_fee = $this->wcfm_vendor_fee($vendor_id,$product);
@@ -642,6 +713,7 @@ class MobbexMarketplace
     }
 
     /**
+     * @deprecated
      * Get hold from Dokan Vendor.
      * @param int $product_id
      */
@@ -667,7 +739,7 @@ class MobbexMarketplace
     {
         ?>
         <p class="form-row form-group form-row-wide">
-            <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex_marketplace') ?><span class="required">*</span></label>
+            <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?><span class="required">*</span></label>
             <input type="text" class="input-text form-control" name="mobbex_tax_id" id="mobbex_tax_id" required="required"/>
             <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
         </p>
@@ -746,19 +818,6 @@ class MobbexMarketplace
 
                 <tr>
                     <th>
-                        <label for="mobbex_marketplace_fee"><?= __('Fee (optional)', 'mobbex-marketplace') ?></label>
-                    </th>
-                    <td>
-                        <input type="text" name="mobbex_marketplace_fee" id="mobbex_marketplace_fee" class="regular-text"
-                        value="<?= get_user_meta($user->ID, 'mobbex_marketplace_fee', true) ?>">
-                        <br/>
-                        <span class="description"><?= __('Set admin commission to seller through Mobbex', 'mobbex-marketplace') ?>
-                        </span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th>
                         <?= __('Payment Withholding', 'mobbex-marketplace') ?>
                     </th>
                     <td>
@@ -789,7 +848,6 @@ class MobbexMarketplace
         if (!empty($user_id)) {
             // If Mobbex values is sent save it
             $tax_id = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
-            $fee = isset($post_data['mobbex_marketplace_fee']) ? sanitize_text_field($post_data['mobbex_marketplace_fee']) : '';
             $hold = isset($post_data['mobbex_marketplace_hold']) ? 'yes' : 'no';
 
             update_user_meta($user_id, 'mobbex_tax_id', $tax_id);
@@ -799,6 +857,26 @@ class MobbexMarketplace
             // Report save error
             MobbexMarketplace::notice('error', __('Failed to save vendor Mobbex information with User Id:' . $user_id, 'mobbex-marketplace'));
         }
+    }
+
+    /**
+     * Add Mobbex fields to vendor store edit.
+     * 
+     * (Dokan hook)
+     * @param int $user_id
+     */
+    public function dokan_add_store_fields($user_id)
+    {
+        ?>
+        <div class="dokan-form-group">
+            <label class="dokan-w3 dokan-control-label" for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?></label>
+
+            <div class="dokan-w5 dokan-text-left">
+                <input type="text" name="mobbex_tax_id" id="mobbex_tax_id" required value="<?= get_user_meta($user_id, 'mobbex_tax_id', true) ?>" class="dokan-form-control">
+                <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
+            </div>
+        </div>
+        <?php
     }
 
     /**
@@ -994,6 +1072,121 @@ class MobbexMarketplace
         
         $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
         return $vendor_billing_fileds;
+    }
+
+    /**
+     * Add Dokan Pro Shippings to checkout data.
+     * 
+     * @param array $shipping
+     * @return array $checkout_data
+     */
+    public function add_dokan_shippings($shippings, $checkout_data)
+    {
+        // Get Dokan shipping recipient configuration
+        $shipping_fee_recipient = dokan_get_option('shipping_fee_recipient', 'dokan_selling', 'seller');
+        // Exit if config data do not look fine
+        if ($shipping_fee_recipient != 'seller' && $shipping_fee_recipient != 'admin') {
+            error_log(__('Mobbex Marketplace ERROR: Dokan Shipping Recipient incompatible.', 'mobbex-marketplace'));
+            exit;
+        }
+
+        foreach ($shippings as $shipping) {
+            // Get Vendor and CUIT from shipping
+            $vendor_id = $shipping->get_meta('seller_id');
+            $cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+
+            foreach ($checkout_data['split'] as $key => $payment) {
+                // Add shipping total to vendor total (in split payment array)
+                if ($payment['tax_id'] == $cuit) {
+                    $checkout_data['split'][$key]['total'] += $shipping->get_total();
+
+                    if ($shipping_fee_recipient === 'admin') {
+                        // If it must be paid by admin, it must be added as a fee
+                        $checkout_data['split'][$key]['fee'] += $shipping->get_total();
+                    }
+                }
+            }
+
+            // Exit if assigned seller did not have any products in the Order
+            if (!in_array($cuit, array_column($checkout_data['split'], 'tax_id'))) {
+                error_log(__('Mobbex Marketplace ERROR: Shipping from a seller without own products in the order.', 'mobbex-marketplace'));
+                exit;
+            }
+        }
+
+        return $checkout_data;
+    }
+
+    /**
+     * Add Custom Configured Shippings to checkout data.
+     * 
+     * @param array $shipping
+     * @return array $checkout_data
+     */
+    public function add_custom_shippings($shippings, $checkout_data)
+    {
+        $custom_shippings_configs = json_decode(get_option('mm_option_custom_shipping'), true);
+        // Exit if config data do not look fine
+        if (empty($custom_shippings_configs)) {
+            error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs active but empty.', 'mobbex-marketplace'));
+            exit;
+        }
+
+        try {
+            foreach ($shippings as $shipping) {
+                foreach ($custom_shippings_configs as $shipping_config) {
+                    // Get options
+                    $method = $shipping_config['shipping_method'];
+                    $type   = $shipping_config['type'];
+                    $cuit   = (isset($shipping_config['cuit'])) ? $shipping_config['cuit'] : '';
+
+                    if ($shipping->get_name() == $method) {
+                        if ($type == 'cuit') {
+                            // Add as a normal split payment
+                            $checkout_data['split'][] = [
+                                'tax_id' => $cuit,
+                                'description' => "Shipping Method $method.Cuit $cuit.",
+                                'total' => $shipping->get_total(),
+                                'reference' => $checkout_data['reference'] . '_split_' . $cuit,
+                                'fee' => null,
+                                'hold' => null,
+                            ];
+
+                            break;
+                        } else if ($type == 'vendor' || $type == 'admin') {
+                            // Get Vendor and CUIT from shipping
+                            $vendor_id = $shipping->get_meta('seller_id');
+                            $vendor_cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+
+                            foreach ($checkout_data['split'] as $key => $payment) {
+                                // Add shipping total to vendor total (in split payment array)
+                                if ($payment['tax_id'] == $vendor_cuit) {
+                                    $checkout_data['split'][$key]['total'] += $shipping->get_total();
+
+                                    if ($type === 'admin') {
+                                        // If it must be paid by admin, it must be added as a fee
+                                        $checkout_data['split'][$key]['fee'] += $shipping->get_total();
+                                    }
+                                }
+                            }
+
+                            // Exit if shipping seller id did not have any products in the Order
+                            if (!in_array($vendor_cuit, array_column($checkout_data['split'], 'tax_id'))) {
+                                error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs active but empty.', 'mobbex-marketplace'));
+                                exit;
+                            }
+
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs incorrect format.' . $e->getMessage(), 'mobbex-marketplace'));
+            exit;
+        }
+
+        return $checkout_data;
     }
 }
 

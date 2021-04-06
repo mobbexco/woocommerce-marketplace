@@ -78,6 +78,24 @@ class MM_Settings
                     </tr>
 
                     <tr valign="top">
+                        <th scope="row"><?= __('Shipping Distribution Manager', 'mobbex-marketplace') ?></th>
+                        <td><?= $this->shipping_manager_field() ?>
+                            <p class="description">
+                                <?= __('Will be used to know to whom the distribution of the shipment is made', 'mobbex-marketplace') ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top" id="custom_shipping_tr">
+                        <th scope="row"><?= __('Custom Shipping Management', 'mobbex-marketplace') ?></th>
+                        <td><?= $this->custom_shipping_field() ?>
+                            <p class="description">
+                                <?= __('Use JSON format to specify how should it be done', 'mobbex-marketplace') ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top">
                         <th scope="row"><?= __('Set Default Payment Fee', 'mobbex-marketplace') ?></th>
                         <td><?= $this->default_fee_field() ?>
                             <p class="description">
@@ -92,6 +110,27 @@ class MM_Settings
                 ?>
             </form>
         </div>
+
+        <script>
+            function hide_or_show(optionToCheck, valueToShow, optionToToggle) {
+                if (optionToCheck.value === valueToShow) {
+                    optionToToggle.style.display = 'table-row';
+                } else {
+                    optionToToggle.style.display = 'none';
+                }
+            }
+
+            window.addEventListener('load', function () {
+                var shippingManager = document.querySelector('#shipping_manager');
+                var customShipping = document.querySelector('#custom_shipping_tr');
+
+                // Show custom shipping option when shipping manager custom is selected
+                hide_or_show(shippingManager, 'custom', customShipping);
+                shippingManager.onclick = function () {
+                    hide_or_show(shippingManager, 'custom', customShipping);
+                }
+            });
+        </script>
 
         <?php
     }
@@ -138,6 +177,31 @@ class MM_Settings
     }
 
     /**
+     * Render Shipping Distribution Manager field.
+     */
+    public function shipping_manager_field()
+    {
+        $value = !empty(get_option('mm_option_shipping_manager')) ? esc_attr(get_option('mm_option_shipping_manager')) : '';
+        return 
+        '<select name="mm_option_shipping_manager" id="shipping_manager">
+            <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan', 'mobbex-marketplace') . '</option>
+            <option value="custom" ' . selected($value, 'custom', false) . '>' . __('Custom', 'mobbex-marketplace') . '</option>
+        </select>';
+    }
+
+    /**
+     * Render Custom Shipping Options field.
+     * (Displayed only with Custom Shipping Recipient active)
+     */
+    public function custom_shipping_field()
+    {
+        $value = !empty(get_option('mm_option_custom_shipping')) ? esc_attr(get_option('mm_option_custom_shipping')) : '';
+        return 
+        '<textarea class="regular-text" type="text" name="mm_option_custom_shipping" id="custom_shipping" value="' . $value . '">' . $value . 
+        '</textarea>';
+    }
+
+    /**
      * Register settings to options group.
      */
     public function register_settings()
@@ -157,6 +221,14 @@ class MM_Settings
         register_setting(
             'mm_option_group',
             'mm_option_default_fee'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_shipping_manager'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_custom_shipping'
         );
     }
 
