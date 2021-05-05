@@ -431,9 +431,9 @@ class MobbexMarketplace
 
                 // Get configs from product/category/vendor/default
                 $cuit = $this->get_cuit($product_id);
-                $fee = $this->get_fee($product_id);
+                $fee = $this->get_fee($item);
                 $hold = $this->get_hold($product_id);
-
+                
                 if (!empty($cuit)) {
                     // Check if a product with the same cuit is already added
                     if (!empty($checkout_data['split'])) {
@@ -487,7 +487,7 @@ class MobbexMarketplace
                 'version' => dokan()->version,
             ];
         }
-
+        
         return $checkout_data;
     }
 
@@ -572,19 +572,19 @@ class MobbexMarketplace
      * Get fee from product/category/vendor/default.
      * @param int $product_id
      */
-    public function get_fee($product_id)
+    public function get_fee($item)
     {
         // Set default to null
         $product_fee = null;
         $category_fee = null;
         $vendor_fee = null;
         $default_fee = null;
-
+        $product_id = $item->get_product()->get_id();
         //Get product using woocommerce method
         $product = wc_get_product( $product_id );
         // Get fee from product
         if(get_option('mm_option_integration') === 'wcfm' ){
-            $product_fee = $this->wcfm_product_fee($product_id,$product);
+            $product_fee = $this->wcfm_product_fee($product,$item);
         }else{
             $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);
         }
@@ -635,8 +635,10 @@ class MobbexMarketplace
      * @param $product : Product
      * @return real
      */
-    private function wcfm_product_fee($product_id, $product ){
+    private function wcfm_product_fee($product, $item){
+        $product_id = $product->get_id();
         $product_commission_data = get_post_meta($product_id, '_wcfmmp_commission', true);
+        
         //if the product commission is set
         if($product_commission_data){
             // Comission modes : fixed / percent / percent + fixed, global is calculated in vendor fee function
@@ -646,12 +648,12 @@ class MobbexMarketplace
                 break;
                 case 'percent':
                     $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
-                    $product_fee = $commission_percent * $product->get_price() / 100;
+                    $product_fee = $commission_percent * $item->get_total() / 100;
                 break;
                 case 'percent_fixed':
                     $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
                     $commission_fixed = $product_commission_data['commission_fixed'];
-                    $product_fee = ($commission_percent * $product->get_price() / 100) + $commission_fixed;
+                    $product_fee = ($commission_percent * $item->get_total() / 100) + $commission_fixed;
                 break;         
             }
         }else{
