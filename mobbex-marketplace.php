@@ -608,7 +608,7 @@ class MobbexMarketplace
             // Get fee from WCFM Vendor
             $vendor_id  = wcfm_get_vendor_id_by_post($product_id);
             if($vendor_id){
-                $vendor_fee = $this->wcfm_vendor_fee($vendor_id,$product);
+                $vendor_fee = $this->wcfm_vendor_fee($vendor_id ,$item);
             }
         }
 
@@ -666,10 +666,10 @@ class MobbexMarketplace
     /**
      * Return WCFM vendor fee
      * @param $vendor_id : integer
-     * @param $product : Product
+     * @param $item : Item
      * @return real
      */
-    private function wcfm_vendor_fee($vendor_id, $product ){
+    private function wcfm_vendor_fee($vendor_id ,$item ){
         $vendor_fee = null;
         $vendor = wcfm_get_vendor_store_address_by_vendor( $vendor_id );
         $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
@@ -682,13 +682,13 @@ class MobbexMarketplace
             case 'percent':
                 $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
                 if($commission_percent)
-                    $vendor_fee = ($commission_percent * $product->get_price() / 100);
+                    $vendor_fee = ($commission_percent *  $item->get_total() / 100);
             break;
             case 'percent_fixed':
                 $vendor_fee = isset( $vendor_data['commission']['commission_fixed'] ) ? $vendor_data['commission']['commission_fixed'] : '0';
                 $commission_percent = isset( $vendor_data['commission']['commission_percent'] ) ? $vendor_data['commission']['commission_percent'] : '0';        
                 if($commission_percent)
-                    $vendor_fee = ($commission_percent * $product->get_price() / 100) + $vendor_fee;
+                    $vendor_fee = ($commission_percent *  $item->get_total() / 100) + $vendor_fee;
             break;
             case 'global':
                 //Get commission options from admin settings
@@ -699,13 +699,13 @@ class MobbexMarketplace
                         $vendor_fee = isset( $wcfm_commission_options['commission_fixed'] ) ? $wcfm_commission_options['commission_fixed'] : '0';    
                     break;
                     case 'percent':
-                        $vendor_fee = $wcfm_commission_options['commission_percent'] * $product->get_price() / 100;
+                        $vendor_fee = $wcfm_commission_options['commission_percent'] *  $item->get_total() / 100;
                     break;   
                     case 'percent_fixed':
                         $vendor_fee = isset( $wcfm_commission_options['commission_fixed'] ) ? $wcfm_commission_options['commission_fixed'] : '0';    
                         $commission_percent = isset( $wcfm_commission_options['commission_percent'] ) ? $wcfm_commission_options['commission_percent'] : '0';        
                         if($commission_percent)
-                            $vendor_fee = ($commission_percent * $product->get_price() / 100) + $vendor_fee;
+                            $vendor_fee = ($commission_percent *  $item->get_total() / 100) + $vendor_fee;
                     break;
                 }
             break;
