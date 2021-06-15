@@ -181,10 +181,10 @@ class MM_Settings
      */
     public function shipping_manager_field()
     {
-        $value = !empty(get_option('mm_option_shipping_manager')) ? esc_attr(get_option('mm_option_shipping_manager')) : '';
+        $value = Mbbxm_Helper::get_shipping_manager();
         return 
         '<select name="mm_option_shipping_manager" id="shipping_manager">
-            <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan', 'mobbex-marketplace') . '</option>
+            <option value="default" ' . selected($value, 'default', false) . '>' . __('Default', 'mobbex-marketplace') . '</option>
             <option value="custom" ' . selected($value, 'custom', false) . '>' . __('Custom', 'mobbex-marketplace') . '</option>
         </select>';
     }
