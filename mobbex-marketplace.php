@@ -579,21 +579,18 @@ class MobbexMarketplace
     public function get_fee($item)
     {
         // Set default to null
-        $product_fee = null;
-        $category_fee = null;
-        $vendor_fee = null;
-        $default_fee = null;
-        $product_id = $item->get_product()->get_id();
-        //Get product using woocommerce method
-        $product = wc_get_product( $product_id );
+        $product_fee = $category_fee = $vendor_fee = $default_fee = null;
+
         // Get fee from product
-        if(get_option('mm_option_integration') === 'wcfm' ){
-            $product_fee = $this->wcfm_product_fee($product,$item);
-        }else{
+        $product_id = $item->get_product()->get_id();
+        if (Mbbxm_Helper::get_integration() == 'wcfm') {
+            $product_fee = $this->wcfm_product_fee($item);
+        } else {
             $product_fee = get_post_meta($product_id, 'mobbex_marketplace_fee', true);
         }
+
         // Get fee from categories
-        $categories = get_the_terms($product_id, 'product_cat');
+        $categories = get_the_terms($product_id, 'product_cat') ?: [];
         foreach ($categories as $category) {
             $category_fee = get_term_meta($category->term_id, 'mobbex_marketplace_fee', true);
             // Break foreach on first match
@@ -639,8 +636,9 @@ class MobbexMarketplace
      * @param $product : Product
      * @return real
      */
-    private function wcfm_product_fee($product, $item){
-        $product_id = $product->get_id();
+    private function wcfm_product_fee($item)
+    {
+        $product_id = $item->get_product()->get_id();
         $product_commission_data = get_post_meta($product_id, '_wcfmmp_commission', true);
         
         //if the product commission is set
@@ -651,11 +649,11 @@ class MobbexMarketplace
                     $product_fee = $product_commission_data['commission_fixed'];
                 break;
                 case 'percent':
-                    $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
+                    $commission_percent = $product_commission_data['commission_percent'];
                     $product_fee = $commission_percent * $item->get_total() / 100;
                 break;
                 case 'percent_fixed':
-                    $commission_percent = get_post_meta( $product_id, 'commission_percent', true);
+                    $commission_percent = $product_commission_data['commission_percent'];
                     $commission_fixed = $product_commission_data['commission_fixed'];
                     $product_fee = ($commission_percent * $item->get_total() / 100) + $commission_fixed;
                 break;         

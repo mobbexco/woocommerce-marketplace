@@ -70,6 +70,7 @@ class Mbbxm_Helper
         if ($integration == 'wcfm') {
             $wcfm_options = get_option('wcfm_commission_options');
             return (isset($wcfm_options['get_shipping']) && $wcfm_options['get_shipping'] == 'yes') ? 'seller' : 'admin';
+            // TODO: Get shipping recipient also from individual verndor configuration
         }
 
         return null;
