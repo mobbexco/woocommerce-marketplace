@@ -163,6 +163,7 @@ class MM_Settings
         '<select name="mm_option_integration" id="integration">
             <option value="0" ' . selected($value, 0, false) . '>' . __('No') . '</option>
             <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan') . '</option>
+            <option value="wcfm" ' . selected($value, 'wcfm', false) . '>' . __('WCFM') . '</option>
         </select>';
     }
 
@@ -180,10 +181,10 @@ class MM_Settings
      */
     public function shipping_manager_field()
     {
-        $value = !empty(get_option('mm_option_shipping_manager')) ? esc_attr(get_option('mm_option_shipping_manager')) : '';
+        $value = Mbbxm_Helper::get_shipping_manager();
         return 
         '<select name="mm_option_shipping_manager" id="shipping_manager">
-            <option value="dokan" ' . selected($value, 'dokan', false) . '>' . __('Dokan', 'mobbex-marketplace') . '</option>
+            <option value="default" ' . selected($value, 'default', false) . '>' . __('Default', 'mobbex-marketplace') . '</option>
             <option value="custom" ' . selected($value, 'custom', false) . '>' . __('Custom', 'mobbex-marketplace') . '</option>
         </select>';
     }
