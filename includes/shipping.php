@@ -30,8 +30,8 @@ class Mbbxm_Shipping
             $custom_option = self::get_custom_option($shipping, $custom_options);
 
             // Try to get custom tax id and recipient configured
-            if ($shipping_manager == 'custom' && $custom_option) {
-                $recipient = $custom_option['type']; // Investigar eníos de manager híbridos
+            if ($shipping_manager == 'custom' && $custom_option) { 
+                $recipient = $custom_option['type'];
 
                 if ($recipient == 'cuit')
                     $tax_id = $custom_option['cuit'];
