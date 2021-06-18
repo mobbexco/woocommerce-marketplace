@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mobbex Marketplace
  * Description: Plugin to extend Mobbex Marketplace functionality.
- * Version: 1.2.0
+ * Version: 1.3.0
  * WC tested up to: 4.2.2
  * Author: mobbex.com
  * Author URI: https://mobbex.com/
@@ -11,7 +11,7 @@
 
 class MobbexMarketplace
 {
-    public static $version = '1.2.0';
+    public static $version = '1.3.0';
 
     /**
      * @var Mbbxm_Helper

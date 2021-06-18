@@ -26,6 +26,9 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.3.0 :: 2021-06-18
+- Integration with WCFM Marketplace plugin.
+
 ### 1.2.0 :: 2021-04-01
 - Integrate Dokan commission methods.
 - Support shipping split payment.
