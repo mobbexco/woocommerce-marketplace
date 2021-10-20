@@ -58,7 +58,7 @@ class Mbbxm_Shipping
                 ];
             } else {
                 // Exit if the vendor doesn't have products in the Order
-                error_log(__('Mobbex Marketplace ERROR: Shipping from a seller without own products in the order.', 'mobbex-marketplace'));
+                error_log('Mobbex Marketplace ERROR: Shipping from a seller without own products in the order.', 3, 'log.log');
                 exit;
             }
         }
@@ -76,24 +76,11 @@ class Mbbxm_Shipping
      */
     public static function get_shipping_tax_id($shipping_item, $integration)
     {
-        if ($integration == 'dokan') {
-            // Get vendor from shipping item
-            $vendor_id = $shipping_item->get_meta('seller_id');
+        // Get vendor from shipping item
+        $vendor_id = $shipping_item->get_meta($integration == 'wcfm' ? 'vendor_id' : 'seller_id');
 
-            // Get tax id and return
-            return get_user_meta($vendor_id, 'mobbex_tax_id', true);
-        }
-
-        if ($integration == 'wcfm') {
-            // Get vendor data from shipping item
-            $vendor_id   = $shipping_item->get_meta('vendor_id');
-            $vendor_data = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
-
-            // Get tax id and return
-            return isset($vendor_data['payment']['mobbex']['tax_id']) ? $vendor_data['payment']['mobbex']['tax_id'] : null;
-        }
-
-        return null;
+        // Get tax id and return
+        return $integration == 'wcfm' ? Mbbxm_Helper::get_wcfm_cuit($vendor_id) : get_user_meta($vendor_id, 'mobbex_tax_id', true);
     }
 
     /**
