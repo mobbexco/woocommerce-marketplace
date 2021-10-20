@@ -75,4 +75,22 @@ class Mbbxm_Helper
 
         return null;
     }
+
+    public static function get_wcfm_cuit($vendor_id)
+    {
+        $cuit = get_user_meta($vendor_id, 'mobbex_tax_id', true);
+
+        if ($cuit)
+            return $cuit;
+
+        // Try to get using previous save method
+        $vendor_data = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
+        $cuit        = !empty($vendor_data['payment']['mobbex']['tax_id']) ? $vendor_data['payment']['mobbex']['tax_id'] : null;
+
+        if ($cuit)
+            update_user_meta($vendor_id, 'mobbex_tax_id', $cuit);
+
+        return $cuit;
+    }
+
 }

@@ -113,7 +113,18 @@ class MobbexMarketplace
         // WCFM integration
         if (get_option('mm_option_integration') === 'wcfm'){
             add_filter('wcfm_marketplace_withdrwal_payment_methods',[$this, 'wcfm_addMethod']);
-            add_filter('wcfm_marketplace_settings_fields_billing', [$this,'wcfm_addVendortaxid'], 50, 2);
+
+            // Admin vendor edit
+            add_action('show_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
+            add_action('edit_user_profile', [$this, 'dokan_admin_add_vendor_fields'], 30);
+            add_action('edit_user_profile_update', [$this, 'dokan_admin_save_vendor_fields']);
+
+            // Vendor registration/edit fields
+            add_filter('wcfm_membership_registration_fields', [$this, 'wcfm_add_vendor_fields']);
+            add_filter('wcfm_marketplace_settings_fields_general', [$this, 'wcfm_add_vendor_fields']);
+            add_filter('wcfm_form_custom_validation', [$this, 'wcfm_validate_vendor_fields'], 10, 2);
+            add_action('wcfm_membership_registration', [$this, 'wcfm_save_vendor_fields'], 10, 2);
+            add_action('wcfm_vendor_settings_update', [$this, 'wcfm_save_vendor_fields'], 10, 2);
         }
     }
 
@@ -1048,34 +1059,40 @@ class MobbexMarketplace
         return $payment_methods;    
     }
 
-    /**
-     * Add Vendor tax id in the payment  page
-     * Works only in Vendor registration and edit pages
-     * Not working for Admin 
-     * @param $vendor_billing_fileds : array
-     * @param $vendor_id : int
-     * @return array
-     */
-    public function wcfm_addVendortaxid( $vendor_billing_fileds, $vendor_id ) 
+    public function wcfm_add_vendor_fields($fields)
     {
-        $gateway_slug = 'mobbex';
-        $vendor_data = get_user_meta( $vendor_id, 'wcfmmp_profile_settings', true );
-        if( !$vendor_data ) $vendor_data = array();
-        $mobbex_tax_id = isset( $vendor_data['payment'][$gateway_slug]['tax_id'] ) ? esc_attr( $vendor_data['payment'][$gateway_slug]['tax_id'] ) : '' ;
-        
-        //if the social key in the array is empty then it's a vendor registration and the field need to have in_table attribute
-        if(sizeof($vendor_data['social']) == 0){
-            $vendor_mobbex_billing_fileds = array(
-                "mobbex" => array('label' => __('Tax ID(CUIT)', 'wc-frontend-manager'), 'name' => 'vendor_data[payment][mobbex][tax_id]', 'type' => 'number', 'in_table' => 'yes', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_mobbex', 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_mobbex', 'value' => $mobbex_tax_id ),
-            );
-        }else{
-            $vendor_mobbex_billing_fileds = array(
-                $gateway_slug => array('label' => __('Tax ID', 'wc-frontend-manager'), 'name' => 'payment['.$gateway_slug.'][tax_id]', 'type' => 'text', 'class' => 'wcfm-text wcfm_ele paymode_field paymode_'.$gateway_slug, 'label_class' => 'wcfm_title wcfm_ele paymode_field paymode_'.$gateway_slug, 'value' => $mobbex_tax_id ),
-            );
-        }
-        
-        $vendor_billing_fileds = array_merge( $vendor_billing_fileds, $vendor_mobbex_billing_fileds );
-        return $vendor_billing_fileds;
+        $user = wp_get_current_user();
+
+        $fields['mobbex_tax_id'] = [
+            'type'              => 'text',
+            'label'             => __('CUIT', 'mobbex-marketplace'),
+            'value'             => get_user_meta($user->ID, 'mobbex_tax_id', true) ?: '',
+            'hints'             => 'CUIT configurado en su cuenta de Mobbex',
+            'class'             => 'wcfm-text',
+            'label_class'       => 'wcfm_title',
+            'custom_attributes' => [
+                'required' => true
+            ],
+        ];
+
+        return $fields;
+    }
+
+    public function wcfm_validate_vendor_fields($data, $form)
+    {
+        if ($form != 'vendor_registration' && $form != 'vendor_setting_manage')
+            return;
+
+        if (empty($data['mobbex_tax_id']))
+            return [
+                'has_error' => true,
+                'message'   => 'Campo CUIT incompleto'
+            ];
+    }
+
+    public function wcfm_save_vendor_fields($id, $data)
+    {
+        update_user_meta($id, 'mobbex_tax_id', $data['mobbex_tax_id']);
     }
 }
 
