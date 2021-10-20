@@ -26,6 +26,11 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.4.0 :: 2021-10-20
+- Add hold option to wcfm integration.
+- Fix wcfm fee obtaining.
+- Improve wcfm cuit configuration and checkout split.
+
 ### 1.3.0 :: 2021-06-18
 - Integration with WCFM Marketplace plugin.
 
