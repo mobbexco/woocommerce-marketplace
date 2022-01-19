@@ -121,7 +121,7 @@ class MobbexMarketplace
 
             // Vendor registration/edit fields
             add_filter('wcfm_membership_registration_fields', [$this, 'wcfm_add_vendor_fields']);
-            add_filter('wcfm_marketplace_settings_fields_general', [$this, 'wcfm_add_vendor_fields']);
+            add_filter('wcfm_marketplace_settings_fields_general', [$this, 'wcfm_add_vendor_fields'], 10, 2);
             add_filter('wcfm_form_custom_validation', [$this, 'wcfm_validate_vendor_fields'], 10, 2);
             add_action('wcfm_membership_registration', [$this, 'wcfm_save_vendor_fields'], 10, 2);
             add_action('wcfm_vendor_settings_update', [$this, 'wcfm_save_vendor_fields'], 10, 2);
@@ -931,14 +931,19 @@ class MobbexMarketplace
         return $payment_methods;    
     }
 
-    public function wcfm_add_vendor_fields($fields)
+    public function wcfm_add_vendor_fields($fields, $user_id = null)
     {
-        $user = wp_get_current_user();
+        // In some pages wcfm calls this hook multiple times...
+        if (isset($fields['list_banner_video']))
+            return $fields;
+
+        if (!$user_id)
+            $user_id = get_current_user_id();
 
         $fields['mobbex_tax_id'] = [
             'type'              => 'text',
             'label'             => __('CUIT', 'mobbex-marketplace'),
-            'value'             => get_user_meta($user->ID, 'mobbex_tax_id', true) ?: '',
+            'value'             => get_user_meta($user_id, 'mobbex_tax_id', true) ?: '',
             'hints'             => 'CUIT configurado en su cuenta de Mobbex',
             'class'             => 'wcfm-text',
             'label_class'       => 'wcfm_title',
