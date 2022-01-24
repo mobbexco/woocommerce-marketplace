@@ -26,6 +26,9 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.4.1 :: 2022-01-24
+- Fix duplicated and empty CUIT field in wcfm vendor panel
+
 ### 1.4.0 :: 2021-10-20
 - Add hold option to wcfm integration.
 - Fix wcfm fee obtaining.
