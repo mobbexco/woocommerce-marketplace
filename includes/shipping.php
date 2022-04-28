@@ -16,10 +16,6 @@ class Mbbxm_Shipping
         $shipping_manager = Mbbxm_Helper::get_shipping_manager();
         $custom_options   = Mbbxm_Helper::get_custom_shipping_options();
 
-        // Shippings are not supported in standalone mode
-        if (!$integration)
-            return $checkout_data;
-
         // Get shippings and shipping recipient
         $shippings = $order->get_items('shipping');
         $recipient = Mbbxm_Helper::get_shipping_recipient($integration);
@@ -56,6 +52,8 @@ class Mbbxm_Shipping
                     'total'       => $shipping->get_total(),
                     'reference'   => $checkout_data['reference'] . '_split_' . $tax_id,
                 ];
+            } else if (!$integration){
+                // By default do not add the shipping amount in standalone mode, the admin will bear the shipping amount
             } else {
                 // Exit if the vendor doesn't have products in the Order
                 error_log('Mobbex Marketplace ERROR: Shipping from a seller without own products in the order.', 3, 'log.log');
@@ -98,10 +96,6 @@ class Mbbxm_Shipping
         $method = $shipping_item->get_name();
         $key    = array_search($method, array_column($custom_options, 'shipping_method'));
 
-        if (is_int($key)) {
-            return $custom_options[$key];
-        }
-
-        return false;
+        return is_int($key) ? $custom_options[$key] : null;
     }
 }

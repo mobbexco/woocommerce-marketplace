@@ -46,7 +46,7 @@ class Mbbxm_Helper
         // Validate option data format
         foreach ($custom_options as $config) {
             if (empty($config['shipping_method']) || empty($config['type']) || empty($config['cuit']) && $config['type'] == 'cuit') {
-                error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs incorrect format.' . $e->getMessage(), 'mobbex-marketplace'));
+                error_log(__('Mobbex Marketplace ERROR: Custom Shipping Configs incorrect format.', 'mobbex-marketplace'));
                 exit;
             }
         }
@@ -63,17 +63,13 @@ class Mbbxm_Helper
      */
     public static function get_shipping_recipient($integration)
     {
-        if ($integration == 'dokan') {
+        // Try to get wcfm options
+        $wcfm_options = get_option('wcfm_commission_options');
+
+        if ($integration == 'dokan')
             return dokan_get_option('shipping_fee_recipient', 'dokan_selling', 'seller');
-        }
-
-        if ($integration == 'wcfm') {
-            $wcfm_options = get_option('wcfm_commission_options');
-            return (isset($wcfm_options['get_shipping']) && $wcfm_options['get_shipping'] == 'yes') ? 'seller' : 'admin';
-            // TODO: Get shipping recipient also from individual verndor configuration
-        }
-
-        return null;
+        else if ($integration == 'wcfm')
+            return (isset($wcfm_options['get_shipping']) && $wcfm_options['get_shipping'] == 'yes') ? 'seller' : 'admin'; // TODO: Get shipping recipient also from individual verndor configuration
     }
 
     public static function get_wcfm_cuit($vendor_id)
