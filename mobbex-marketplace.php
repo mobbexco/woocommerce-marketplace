@@ -66,14 +66,18 @@ class MobbexMarketplace
 
             return;
         }
+
         
         add_filter('plugin_row_meta', [$this, 'plugin_row_meta'], 10, 2);
-
+        
         // Add marketplace data to checkout
         add_filter('mobbex_checkout_custom_data', [$this, 'modify_checkout_data'], 10, 2);
         
         // Save split data from Mobbex response
         add_action('mobbex_checkout_process', [$this, 'save_mobbex_response'], 10 , 2);
+        
+        //Filter Mobbex Webhook
+        add_filter('mobbex_order_webhook', [$this, 'mobbex_webhook'], 10, 1);
 
         // No integrations hooks
         if (empty(get_option('mm_option_integration'))) {
@@ -242,6 +246,8 @@ class MobbexMarketplace
         require_once plugin_dir_path(__FILE__) . 'includes/wcfmmp-gateway-mobbex.php';
     }
 
+    
+    
     /**
      * Plugin row meta links
      *
@@ -530,6 +536,51 @@ class MobbexMarketplace
                 }
             }
         }
+    }
+    
+    /**
+     * Intercept the Mobbex Webhook to filter his data & set the seller earning.
+     * @param array $response
+     */
+    public function mobbex_webhook($response)
+    {
+        $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
+        
+        //Set seller earnings
+        foreach (dokan_get_suborder_ids_by($order_id) as $order) {
+            $earning = $this->get_vendor_earning($response['data'], $order->ID );
+            global $wpdb;
+            $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
+        }
+        
+        return $response;
+    }
+    
+    /**
+     * Calculates the earning percent of a seller.
+     *
+     * @param  array $data
+     * @param string $order_id
+     */
+    public function get_vendor_earning($data, $order_id)
+    {
+        //Get Order total & actual seller earning
+        global $wpdb;
+        $result = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT `net_amount`, `order_total` FROM {$wpdb->dokan_orders} WHERE `order_id` = %d",
+                $order_id
+            )
+        );
+        
+        //Calculate final earning
+        $order_financial_cost   = $data['payment']['total'] - $data['checkout']['total'];
+        $seller_earning_percent = $result->order_total/$data['checkout']['total'];
+        $fee                    = $result->net_amount/$result->order_total;
+        $seller_financial_cost  = $seller_earning_percent * $order_financial_cost;
+        $seller_earning         = $seller_financial_cost * $fee + $result->net_amount;
+
+        return $seller_earning;
     }
 
     /**
