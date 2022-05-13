@@ -544,45 +544,28 @@ class MobbexMarketplace
      */
     public function mobbex_webhook($response)
     {
-        $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
         
-        //Set seller earnings
-        foreach (dokan_get_suborder_ids_by($order_id) as $order) {
-            $earning = $this->get_vendor_earning($response['data'], $order->ID );
-            global $wpdb;
-            $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
+        $order_id  = $_REQUEST['mobbex_order_id'];
+        
+        if(empty($order_id))
+            $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
+        
+        try {
+            //Set Dokan seller earnings
+            if (get_option('mm_option_integration') === 'dokan'){
+                foreach (dokan_get_suborder_ids_by($order_id) as $order) {
+                    $earning = Mbbxm_Helper::get_dokan_vendor_earning($response['data'], $order->ID );
+                    global $wpdb;
+                    $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
+                }
+            }
+        } catch (\Exception $e) {
+            mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT));
         }
         
         return $response;
     }
     
-    /**
-     * Calculates the earning percent of a seller.
-     *
-     * @param  array $data
-     * @param string $order_id
-     */
-    public function get_vendor_earning($data, $order_id)
-    {
-        //Get Order total & actual seller earning
-        global $wpdb;
-        $result = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT `net_amount`, `order_total` FROM {$wpdb->dokan_orders} WHERE `order_id` = %d",
-                $order_id
-            )
-        );
-        
-        //Calculate final earning
-        $order_financial_cost   = $data['payment']['total'] - $data['checkout']['total'];
-        $seller_earning_percent = $result->order_total/$data['checkout']['total'];
-        $fee                    = $result->net_amount/$result->order_total;
-        $seller_financial_cost  = $seller_earning_percent * $order_financial_cost;
-        $seller_earning         = $seller_financial_cost * $fee + $result->net_amount;
-
-        return $seller_earning;
-    }
-
     /**
      * Get cuit from product/category.
      * @param int $product_id

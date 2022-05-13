@@ -133,4 +133,31 @@ class Mbbxm_Helper
     {
         return self::get_integration() == 'wcfm' ? get_user_meta($vendor_id, 'store_name', true) : dokan_get_store_info($vendor_id)['store_name'];
     }
+
+    /**
+     * Calculates the earning percent of a seller in dokan integration.
+     *
+     * @param  array $data
+     * @param string $order_id
+     */
+    public static function get_dokan_vendor_earning($data, $order_id)
+    {
+        //Get Order total & actual seller earning
+        global $wpdb;
+        $result = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT `net_amount`, `order_total` FROM {$wpdb->dokan_orders} WHERE `order_id` = %d",
+                $order_id
+            )
+        );
+        
+        //Calculate final earning
+        $order_financial_cost   = $data['payment']['total'] - $data['checkout']['total'];
+        $seller_earning_percent = $result->order_total/$data['checkout']['total'];
+        $fee                    = $result->net_amount/$result->order_total;
+        $seller_financial_cost  = $seller_earning_percent * $order_financial_cost;
+        $seller_earning         = $seller_financial_cost * $fee + $result->net_amount;
+
+        return $seller_earning;
+    }
 }
