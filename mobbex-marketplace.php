@@ -66,14 +66,18 @@ class MobbexMarketplace
 
             return;
         }
+
         
         add_filter('plugin_row_meta', [$this, 'plugin_row_meta'], 10, 2);
-
+        
         // Add marketplace data to checkout
         add_filter('mobbex_checkout_custom_data', [$this, 'modify_checkout_data'], 10, 2);
         
         // Save split data from Mobbex response
         add_action('mobbex_checkout_process', [$this, 'save_mobbex_response'], 10 , 2);
+        
+        //Filter Mobbex Webhook
+        add_filter('mobbex_order_webhook', [$this, 'mobbex_webhook'], 10, 1);
 
         // No integrations hooks
         if (empty(get_option('mm_option_integration'))) {
@@ -242,6 +246,8 @@ class MobbexMarketplace
         require_once plugin_dir_path(__FILE__) . 'includes/wcfmmp-gateway-mobbex.php';
     }
 
+    
+    
     /**
      * Plugin row meta links
      *
@@ -531,7 +537,35 @@ class MobbexMarketplace
             }
         }
     }
-
+    
+    /**
+     * Intercept the Mobbex Webhook to filter his data & set the seller earning.
+     * @param array $response
+     */
+    public function mobbex_webhook($response)
+    {
+        
+        $order_id  = $_REQUEST['mobbex_order_id'];
+        
+        if(empty($order_id))
+            $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
+        
+        try {
+            //Set Dokan seller earnings
+            if (get_option('mm_option_integration') === 'dokan'){
+                foreach (dokan_get_suborder_ids_by($order_id) as $order) {
+                    $earning = Mbbxm_Helper::get_dokan_vendor_earning($response['data'], $order->ID );
+                    global $wpdb;
+                    $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
+                }
+            }
+        } catch (\Exception $e) {
+            mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT));
+        }
+        
+        return $response;
+    }
+    
     /**
      * Get cuit from product/category.
      * @param int $product_id
