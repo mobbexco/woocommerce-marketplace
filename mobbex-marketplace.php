@@ -553,9 +553,18 @@ class MobbexMarketplace
         try {
             //Set Dokan seller earnings
             if (get_option('mm_option_integration') === 'dokan'){
-                foreach (dokan_get_suborder_ids_by($order_id) as $order) {
-                    $earning = Mbbxm_Helper::get_dokan_vendor_earning($response['data'], $order->ID );
-                    global $wpdb;
+
+                global $wpdb;
+                $sub_orders = dokan_get_suborder_ids_by($order_id);
+
+                if($sub_orders) {
+                    foreach ($sub_orders as $order) {
+                        $earning = Mbbxm_Helper::get_dokan_vendor_earning($response['data'], wc_get_order($order->ID));
+                        $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
+                    }
+                } else {
+                    $order = wc_get_order($order_id);
+                    $earning = Mbbxm_Helper::get_dokan_vendor_earning($response['data'], $order);
                     $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
                 }
             }
