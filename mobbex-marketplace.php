@@ -487,8 +487,12 @@ class MobbexMarketplace
                 }
             }
         } catch (\Exception $e) {
-            // TODO: Show error messages on checkout
-            mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT));
+            if(function_exists('mobbex_debug')){
+                mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT));
+            } else {
+                $logger = new \MobbexLogger;
+                $logger->debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT), true);
+            }
         }
 
         // Try to get shipping items from order
@@ -560,7 +564,12 @@ class MobbexMarketplace
                 }
             }
         } catch (\Exception $e) {
-            mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT));
+            if(function_exists('mobbex_debug')){
+                mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT));
+            } else {
+                $logger = new \MobbexLogger;
+                $logger->debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT), true);
+            }
         }
         
         return $response;
