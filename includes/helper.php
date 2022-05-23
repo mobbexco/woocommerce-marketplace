@@ -135,10 +135,11 @@ class Mbbxm_Helper
     }
 
     /**
-     * Calculates the earning percent of a seller in dokan integration.
+     * Calculates the earning percent of a seller in dokan integration & add it in
+     * the order panel with the discount/financial cost item.
      *
-     * @param  array $data
-     * @param string $order_id
+     * @param array $data
+     * @param object $order
      */
     public static function get_dokan_vendor_earning($data, $order)
     {
@@ -150,6 +151,10 @@ class Mbbxm_Helper
         $fee                    = $net_amount/$order_total;
         $seller_financial_cost  = $seller_earning_percent * $order_financial_cost;
         $seller_earning         = $seller_financial_cost * $fee + $net_amount;
+
+        //Add financial cost/discount item in order panel
+        $mobbex_helper = new \MobbexHelper;
+        $mobbex_helper->update_order_total($order, $order_total + $seller_financial_cost);
 
         return $seller_earning;
     }
