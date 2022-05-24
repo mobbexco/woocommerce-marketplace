@@ -828,7 +828,7 @@ class MobbexMarketplace
     public function add_unhold_actions($actions) 
     {
         global $theorder;
-        $order_id = $theorder->id;
+        $order_id = $theorder instanceof WC_Data ? $theorder->get_id() : null;
 
         // Add action if any split is on hold
         $split_data = get_post_meta($order_id, 'mobbex_split_data', true);
