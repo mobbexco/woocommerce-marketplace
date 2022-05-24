@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mobbex Marketplace
  * Description: Plugin to extend Mobbex Marketplace functionality.
- * Version: 1.4.1
+ * Version: 1.5.0
  * WC tested up to: 4.2.2
  * Author: mobbex.com
  * Author URI: https://mobbex.com/
@@ -11,7 +11,7 @@
 
 class MobbexMarketplace
 {
-    public static $version = '1.4.1';
+    public static $version = '1.5.0';
 
     /**
      * @var Mbbxm_Helper
@@ -487,6 +487,7 @@ class MobbexMarketplace
                 }
             }
         } catch (\Exception $e) {
+            // TODO: Show error messages on checkout
             if(function_exists('mobbex_debug')){
                 mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT));
             } else {
