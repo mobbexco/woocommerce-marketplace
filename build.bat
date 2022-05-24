@@ -1,4 +1,4 @@
-set ver="1.4.1"
+set ver="1.5.0"
 
 :: Create directory with plugin files
 robocopy . mobbex-marketplace /MIR /XD .git .vscode mobbex-marketplace /XF .gitignore build.bat readme.md *.zip

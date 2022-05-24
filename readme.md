@@ -26,6 +26,11 @@ Version 3.0.0 or greater
 
 ## Changelog
 
+### 1.5.0 :: 2022-05-24
+- Add discount/financial cost item on dokan order panels and add it to earning amount.
+- Support shipping custom options in standalone mode.
+- Support new Mobbex debug method.
+
 ### 1.4.1 :: 2022-01-24
 - Fix duplicated and empty CUIT field in wcfm vendor panel
 
