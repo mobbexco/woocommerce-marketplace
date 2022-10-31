@@ -141,7 +141,7 @@ class Mbbxm_Helper
      * @param array $data
      * @param object $order
      */
-    public static function get_dokan_vendor_earning($data, $order)
+    public function get_dokan_vendor_earning($data, $order)
     {
         //Calculate final earning
         $order_total            = $order->get_total();
@@ -153,7 +153,7 @@ class Mbbxm_Helper
         $seller_earning         = $seller_financial_cost * $fee + $net_amount;
 
         //Add financial cost/discount item in order panel
-        self::update_order_total($order, $order_total + $seller_financial_cost);
+        $this->update_order_total($order, $order_total + $seller_financial_cost);
 
         return $seller_earning;
     }
@@ -164,7 +164,7 @@ class Mbbxm_Helper
      * @param WC_Order $order
      * @param int $total
      */
-    public static function update_order_total($order, $total)
+    public function update_order_total($order, $total)
     {
         if ($order->get_total() == $total || $order->get_meta('mbbx_total_updated'))
             return;
