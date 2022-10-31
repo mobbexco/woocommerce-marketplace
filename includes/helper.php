@@ -153,9 +153,34 @@ class Mbbxm_Helper
         $seller_earning         = $seller_financial_cost * $fee + $net_amount;
 
         //Add financial cost/discount item in order panel
-        $mobbex_helper = new \MobbexHelper;
-        $mobbex_helper->update_order_total($order, $order_total + $seller_financial_cost);
+        self::update_order_total($order, $order_total + $seller_financial_cost);
 
         return $seller_earning;
+    }
+
+    /**
+     * Update order total paid using webhook formatted data.
+     * 
+     * @param WC_Order $order
+     * @param int $total
+     */
+    public static function update_order_total($order, $total)
+    {
+        if ($order->get_total() == $total || $order->get_meta('mbbx_total_updated'))
+            return;
+
+        // Add a fee item to order with the difference
+        $item = new \WC_Order_Item_Fee;
+        $item->set_props([
+            'name'   => $total > $order->get_total() ? 'Cargo financiero' : 'Descuento',
+            'amount' => $total - $order->get_total(),
+            'total'  => $total - $order->get_total(),
+        ]);
+        
+        $order->add_item($item);
+
+        // Recalculate totals and add flag to not do it again
+        $order->calculate_totals();
+        $order->update_meta_data('mbbx_total_updated', 1);
     }
 }
