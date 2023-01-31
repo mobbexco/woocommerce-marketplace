@@ -79,6 +79,9 @@ class MobbexMarketplace
         //Filter Mobbex Webhook
         add_filter('mobbex_order_webhook', [$this, 'mobbex_webhook'], 10, 1);
 
+        //Filter Mobbex entity uid from vendor product
+        add_filter('filter_mbbx_entity', [$this, 'get_vendor_entity'], 10, 2);
+
         // No integrations hooks
         if (empty(get_option('mm_option_integration'))) {
             // Product config management
@@ -332,8 +335,17 @@ class MobbexMarketplace
             'desc_tip'    => true
         ];
 
+        $uid_field = [
+            'id'          => 'mobbex_marketplace_uid',
+            'value'       => get_post_meta(get_the_ID(), 'mobbex_marketplace_uid', true),
+            'label'       => __('UID (multivendor)', 'mobbex-marketplace'),
+            'description' => __('Set the Mobbex uid of the seller. Only multivendor mode required', 'mobbex-marketplace'),
+            'desc_tip'    => true
+        ];
+
         woocommerce_wp_text_input($cuit_field);
         woocommerce_wp_text_input($fee_field); 
+        woocommerce_wp_text_input($uid_field); 
         echo '</div>';
     }
 
@@ -346,9 +358,11 @@ class MobbexMarketplace
         // Get options and update product metadata
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
         $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
+        $uid = !empty($_POST['mobbex_marketplace_uid']) ? esc_attr($_POST['mobbex_marketplace_uid']) : null;
 
         update_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', $cuit);
-        update_post_meta(get_the_ID(), 'mobbex_marketplace_fee', $fee);
+        update_post_meta(get_the_ID(), 'mobbex_marketplace_uid', $fee);
+        update_post_meta(get_the_ID(), 'mobbex_marketplace_uid', $uid);
     }
 
     /**
@@ -399,10 +413,12 @@ class MobbexMarketplace
     {
         // Get options and update category metadata
         $cuit = !empty($_POST['mobbex_marketplace_cuit']) ? esc_attr($_POST['mobbex_marketplace_cuit']) : null;
-        $fee = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
+        $fee  = !empty($_POST['mobbex_marketplace_fee']) ? esc_attr($_POST['mobbex_marketplace_fee']) : null;
+        $uid  = !empty($_POST['mobbex_marketplace_uid']) ? esc_attr($_POST['mobbex_marketplace_uid']) : null;
 
         update_term_meta($term_id, 'mobbex_marketplace_cuit', $cuit);
         update_term_meta($term_id, 'mobbex_marketplace_fee', $fee);
+        update_term_meta($term_id, 'mobbex_marketplace_uid', $uid);
     }
 
     /**
@@ -412,9 +428,11 @@ class MobbexMarketplace
     public function modify_checkout_data($checkout_data, $order_id)
     {
         // Wallet split payment only works with Mobbex for Woocommerce > 3.1.2
-        if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<')) {
+        if (Mbbxm_Helper::get_marketplace_mode() !== 'split')
+            return $checkout_data;
+
+        if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<')) 
             return;
-        }
 
         $order       = wc_get_order($order_id);
         $integration = Mbbxm_Helper::get_integration();
@@ -758,6 +776,19 @@ class MobbexMarketplace
                     </td>
                 </tr>
 
+                    <th>
+                        <label for="mobbex_entity_uid"><?= __('Entity UID', 'mobbex-marketplace'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" name="mobbex_entity_uid" id="mobbex_entity_uid" class="regular-text"
+                        value="<?= get_user_meta($user->ID, 'mobbex_entity_uid', true) ?>">
+                        <br/>
+                        <span class="description">
+                        <?= __('Entity UID configured in Mobbex commerce', 'mobbex-marketplace') ?>
+                        </span>
+                    </td>
+                </tr>
+
                 <tr>
                     <th>
                         <?= __('Payment Withholding', 'mobbex-marketplace') ?>
@@ -789,10 +820,12 @@ class MobbexMarketplace
 
         if (!empty($user_id)) {
             // If Mobbex values is sent save it
-            $tax_id = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
-            $hold = isset($post_data['mobbex_marketplace_hold']) ? 'yes' : 'no';
+            $tax_id     = isset($post_data['mobbex_tax_id']) ? sanitize_text_field($post_data['mobbex_tax_id']) : '';
+            $entity_uid = isset($post_data['mobbex_entity_uid']) ? sanitize_text_field($post_data['mobbex_entity_uid']) : '';
+            $hold       = isset($post_data['mobbex_marketplace_hold']) ? 'yes' : 'no';
 
             update_user_meta($user_id, 'mobbex_tax_id', $tax_id);
+            update_user_meta($user_id, 'mobbex_entity_uid', $entity_uid);
             update_user_meta($user_id, 'mobbex_marketplace_hold', $hold);
         } else {
             // Report save error
@@ -815,6 +848,15 @@ class MobbexMarketplace
             <div class="dokan-w5 dokan-text-left">
                 <input type="text" name="mobbex_tax_id" id="mobbex_tax_id" required value="<?= get_user_meta($user_id, 'mobbex_tax_id', true) ?>" class="dokan-form-control">
                 <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
+            </div>
+        </div>
+
+        <div class="dokan-form-group">
+            <label class="dokan-w3 dokan-control-label" for="mobbex_entity_uid"><?= __('Entity UID', 'mobbex-marketplace') ?></label>
+
+            <div class="dokan-w5 dokan-text-left">
+                <input type="text" name="mobbex_entity_uid" id="mobbex_entity_uid" value="<?= get_user_meta($user_id, 'mobbex_entity_uid', true) ?>" class="dokan-form-control">
+                <small><?= __('Entity UID configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
             </div>
         </div>
         <?php
@@ -1005,6 +1047,14 @@ class MobbexMarketplace
                 'required' => true
             ],
         ];
+        $fields['mobbex_entity_uid'] = [
+            'type'              => 'text',
+            'label'             => __('UID', 'mobbex-marketplace'),
+            'value'             => get_user_meta($user_id, 'mobbex_entity_uid', true) ?: '',
+            'hints'             => 'UID configurado en su cuenta de Mobbex',
+            'class'             => 'wcfm-text',
+            'label_class'       => 'wcfm_title',
+        ];
 
         return $fields;
     }
@@ -1024,6 +1074,15 @@ class MobbexMarketplace
     public function wcfm_save_vendor_fields($id, $data)
     {
         update_user_meta($id, 'mobbex_tax_id', $data['mobbex_tax_id']);
+        update_user_meta($id, 'mobbex_entity_uid', $data['mobbex_entity_uid']);
+    }
+
+    public function get_vendor_entity($product_id)
+    {
+        if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<' && Mbbxm_Helper::get_marketplace_mode() != 'multivendor')) {
+            return;
+        }
+            return Mbbxm_Helper::get_entity_uid($product_id);
     }
 }
 

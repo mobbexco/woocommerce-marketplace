@@ -32,6 +32,16 @@ class Mbbxm_Helper
 
         return $option;
     }
+    /**
+     * Retrieve the current Marketplace Mode
+     */
+    public static function get_marketplace_mode()
+    {
+        // Get vendor mode saved value
+        $option = get_option('mm_option_marketplace_mode');
+
+        return $option;
+    }
 
     /**
      * Retrieve the current Custom Shipping Options.
@@ -87,6 +97,22 @@ class Mbbxm_Helper
             update_user_meta($vendor_id, 'mobbex_tax_id', $cuit);
 
         return $cuit;
+    }
+    /*
+    *  Get the entity uid by integration
+    */
+    public static function get_entity_uid($product_id)
+    {
+        if (self::get_integration() === 'dokan') 
+        {           
+            $vendor_id = dokan_get_vendor_by_product($product_id);
+            return !empty($vendor_id) ? get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) : '';
+        }
+        if (self::get_integration() === 'wcfm')
+        {
+            $vendor_id = wcfm_get_vendor_id_by_post($product_id);
+            return !empty($vendor_id) ? get_user_meta($vendor_id, 'mobbex_entity_uid', true) : '';
+        }
     }
 
     public static function get_wcfm_fee($item)
