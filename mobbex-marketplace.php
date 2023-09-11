@@ -603,6 +603,38 @@ class MobbexMarketplace
         
         return $response;
     }
+
+    /**
+     * Get vendor uid from product/category.
+     * @param int $product_id
+     */
+    public function get_entity($product_id)
+    {
+        // Set default to null
+        $product_uid = $category_uid = null;
+
+        // Get uid from product
+        
+        $product_uid = get_metadata('post', $product_id, 'mbbx_entity', true);
+
+        // Get uid from categories
+        $categories = get_the_terms($product_id, 'product_cat') ?: [];
+        foreach ($categories as $category) {
+            $category_uid = get_metadata('term', $category->term_id, 'mbbx_entity', true);
+            // Break foreach on first match
+            if (!empty($category_uid))
+                break;
+        }
+
+        // Return uid in order of specificity
+        if (!empty($product_uid)) {
+            return $product_uid;
+        } else if (!empty($category_uid)) {
+            return $category_uid;
+        }
+
+        return null;
+    }
     
     /**
      * Get cuit from product/category.
