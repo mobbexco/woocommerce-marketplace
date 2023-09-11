@@ -322,7 +322,7 @@ class MobbexMarketplace
         $cuit_field = [
             'id'          => 'mobbex_marketplace_cuit',
             'value'       => get_post_meta(get_the_ID(), 'mobbex_marketplace_cuit', true),
-            'label'       => __('Tax Id', 'mobbex-marketplace'),
+            'label'       => __('Tax Id (Deprecated)', 'mobbex-marketplace'),
             'description' => __('Written without hyphens. Cuit of store to which you want to allocate the payment.', 'mobbex-marketplace'),
             'desc_tip'    => true
         ];
@@ -338,7 +338,7 @@ class MobbexMarketplace
         $uid_field = [
             'id'          => 'mobbex_marketplace_uid',
             'value'       => get_post_meta(get_the_ID(), 'mobbex_marketplace_uid', true),
-            'label'       => __('UID (multivendor)', 'mobbex-marketplace'),
+            'label'       => __('Entity UID', 'mobbex-marketplace'),
             'description' => __('Set the Mobbex uid of the seller. Only multivendor mode required', 'mobbex-marketplace'),
             'desc_tip'    => true
         ];
@@ -379,7 +379,7 @@ class MobbexMarketplace
         </tr>
             <tr class="form-field">
                 <th scope="row" valign="top">
-                    <label for="mobbex_marketplace_cuit"><?= __('Tax Id', 'mobbex-marketplace'); ?></label>
+                    <label for="mobbex_marketplace_cuit"><?= __('Tax Id (Deprecated)', 'mobbex-marketplace'); ?></label>
                 </th>
                 <td>
                     <input type="text" name="mobbex_marketplace_cuit" id="mobbex_marketplace_cuit" size="3" 
@@ -442,13 +442,16 @@ class MobbexMarketplace
                 foreach (Mbbxm_Helper::get_items_by_vendor($order) as $vendor_id => $items) {
                     $total = $fee = 0;
                     $product_ids = [];
+                    
+                    //Get vendor uid
+                    $entity = get_user_meta($vendor_id, 'mobbex_entity_uid', true) ?: '';
 
                     // Get cuit from user meta
                     $cuit = $integration == 'wcfm' ? Mbbxm_Helper::get_wcfm_cuit($vendor_id) : get_user_meta($vendor_id, 'mobbex_tax_id', true);
 
                     // Exit if cuit is not configured
-                    if (empty($cuit))
-                        throw new \Exception('Empty CUIT. Vendor ' . Mbbxm_Helper::get_store_name($vendor_id));
+                    if (empty($cuit) && empty($entity))
+                        throw new \Exception('Empty entity UID. Vendor ' . Mbbxm_Helper::get_store_name($vendor_id));
 
                     foreach ($items as $item) {
                         $total        += $item->get_total();
@@ -457,7 +460,8 @@ class MobbexMarketplace
                     }
 
                     $checkout_data['split'][] = [
-                        'tax_id'      => $cuit,
+                        'entity'      => get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) ?: '',
+                        'tax_id'      => $cuit ?: '',
                         'hold'        => get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes',
                         'fee'         => $fee,
                         'total'       => $total,
@@ -472,13 +476,14 @@ class MobbexMarketplace
                     $product_id = $item->get_product()->get_id();
 
                     // Get configs from product/category/vendor/default
-                    $cuit = $this->get_cuit($product_id);
-                    $fee = $this->get_fee($item);
-                    $hold = $this->get_hold($product_id);
+                    $entity = $this->get_entity($product_id);
+                    $cuit   = $this->get_cuit($product_id);
+                    $fee    = $this->get_fee($item);
+                    $hold   = $this->get_hold($product_id);
 
                     // Exit if cuit is not configured
-                    if (empty($cuit))
-                        throw new \Exception('Empty CUIT. Product #' . $product_id);
+                    if (empty($cuit) && empty($entity))
+                        throw new \Exception('Empty entity UID. Product #' . $product_id);
 
                     if (!isset($checkout_data['split'])) $checkout_data['split'] = [];
 
@@ -494,7 +499,8 @@ class MobbexMarketplace
                     } else {
                         // Add split payment
                         $checkout_data['split'][] = [
-                            'tax_id' => $cuit,
+                            'entity' => $entity,
+                            'tax_id' => $cuit ?: '',
                             'description' => "Cuit $cuit. Product IDs: $product_id",
                             'total' => $item->get_total(),
                             'reference' => $checkout_data['reference'] . '_split_' . $cuit,
@@ -731,9 +737,9 @@ class MobbexMarketplace
     {
         ?>
         <p class="form-row form-group form-row-wide">
-            <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?><span class="required">*</span></label>
-            <input type="text" class="input-text form-control" name="mobbex_tax_id" id="mobbex_tax_id" required="required"/>
-            <small><?= __('Tax Id configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
+            <label for="mobbex_tax_id"><?= __('Entity UID', 'mobbex-marketplace') ?><span class="required">*</span></label>
+            <input type="text" class="input-text form-control" name="mobbex_entity_uid" id="mobbex_entity_uid" required="required"/>
+            <small><?= __('Entity UID of the vendor configured in your Mobbex commerce', 'mobbex-marketplace') ?></small>
         </p>
         <?php
     }
@@ -747,8 +753,8 @@ class MobbexMarketplace
      */
     public function dokan_validate_vendor_fields($required_fields)
     {
-        // Add Mobbex Tax Id to required fields array
-        $required_fields['mobbex_tax_id'] = __('Please enter the Tax Id configured in your Mobbex commerce.', 'mobbex-marketplace');
+        // Add Mobbex entity uid to required fields array
+        $required_fields['mobbex_entity_uid'] = __('Please enter the Entity UID configured in your Mobbex commerce.', 'mobbex-marketplace');
         return $required_fields;
     }
 
@@ -760,9 +766,9 @@ class MobbexMarketplace
      */
     public function dokan_save_vendor_fields($user_id)
     {
-        // If Mobbex tax id is sent save it
-        if (!empty($user_id) && $_POST['mobbex_tax_id']) {
-            update_user_meta($user_id, 'mobbex_tax_id', sanitize_text_field($_POST['mobbex_tax_id']));
+        // If Mobbex enttity uid is sent save it
+        if (!empty($user_id) && $_POST['mobbex_entity_uid']) {
+            update_user_meta($user_id, 'mobbex_entity_uid', sanitize_text_field($_POST['mobbex_entity_uid']));
         } else {
             // Report save error
             return new WP_Error('mobbex_vendor_error', __('Failed to save vendor Mobbex information with User Id:' . $user_id, 'mobbex-marketplace'));
@@ -796,7 +802,7 @@ class MobbexMarketplace
 
                 <tr>
                     <th>
-                        <label for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace'); ?></label>
+                        <label for="mobbex_tax_id"><?= __('Tax Id (Deprecated)', 'mobbex-marketplace'); ?></label>
                     </th>
                     <td>
                         <input type="text" name="mobbex_tax_id" id="mobbex_tax_id" class="regular-text"
@@ -809,7 +815,7 @@ class MobbexMarketplace
                 </tr>
 
                     <th>
-                        <label for="mobbex_entity_uid"><?= __('Entity UID', 'mobbex-marketplace'); ?></label>
+                        <label for="mobbex_entity_uid"><?= __('Entity UID (required)', 'mobbex-marketplace'); ?></label>
                     </th>
                     <td>
                         <input type="text" name="mobbex_entity_uid" id="mobbex_entity_uid" class="regular-text"
@@ -875,7 +881,7 @@ class MobbexMarketplace
     {
         ?>
         <div class="dokan-form-group">
-            <label class="dokan-w3 dokan-control-label" for="mobbex_tax_id"><?= __('Tax Id', 'mobbex-marketplace') ?></label>
+            <label class="dokan-w3 dokan-control-label" for="mobbex_tax_id"><?= __('Tax Id (Deprecated)', 'mobbex-marketplace') ?></label>
 
             <div class="dokan-w5 dokan-text-left">
                 <input type="text" name="mobbex_tax_id" id="mobbex_tax_id" required value="<?= get_user_meta($user_id, 'mobbex_tax_id', true) ?>" class="dokan-form-control">
