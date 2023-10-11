@@ -86,6 +86,15 @@ class MM_Settings
                         </td>
                     </tr>
 
+                    <tr valign="top">
+                        <th scope="row"><?= __('Mode', 'mobbex-marketplace') ?></th>
+                        <td><?= $this->marketplace_mode() ?>
+                            <p class="description">
+                                <?= __('Change how the plugin works. Multivendor mode require to set the vendor UID in vendors panel.', 'mobbex-marketplace') ?>
+                            </p>
+                        </td>
+                    </tr>
+
                     <tr valign="top" id="custom_shipping_tr">
                         <th scope="row"><?= __('Custom Shipping Management', 'mobbex-marketplace') ?></th>
                         <td><?= $this->custom_shipping_field() ?>
@@ -190,6 +199,19 @@ class MM_Settings
     }
 
     /**
+     * Render Marketplace Mode field
+     */
+    public function marketplace_mode()
+    {
+        $value = Mbbxm_Helper::get_marketplace_mode();
+        return
+        '<select name="mm_option_marketplace_mode" id="marketplace_mode">
+            <option value="split" ' . selected($value, 'split', false) . '>' . __('Split', 'mobbex-marketplace') . '</option>
+            <option value="multivendor" ' . selected($value, 'multivendor', false) . '>' . __('Multivendor', 'mobbex-marketplace') . '</option>
+        </select>';
+    }
+
+    /**
      * Render Custom Shipping Options field.
      * (Displayed only with Custom Shipping Recipient active)
      */
@@ -225,6 +247,10 @@ class MM_Settings
         register_setting(
             'mm_option_group',
             'mm_option_shipping_manager'
+        );
+        register_setting(
+            'mm_option_group',
+            'mm_option_marketplace_mode'
         );
         register_setting(
             'mm_option_group',
