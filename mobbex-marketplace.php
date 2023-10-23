@@ -451,7 +451,7 @@ class MobbexMarketplace
 
                     // Exit if cuit is not configured
                     if (empty($cuit) && empty($entity))
-                        throw new \Exception('Empty entity UID. Vendor ' . Mbbxm_Helper::get_store_name($vendor_id));
+                        throw new \Exception('Empty entity UID or Tax id. Vendor ' . Mbbxm_Helper::get_store_name($vendor_id));
 
                     foreach ($items as $item) {
                         $total        += $item->get_total();
@@ -460,8 +460,8 @@ class MobbexMarketplace
                     }
 
                     $checkout_data['split'][] = [
-                        'entity'      => get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) ?: '',
-                        'tax_id'      => $cuit ?: '',
+                        'entity'      => get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) ?: null,
+                        'tax_id'      => $cuit ?: null,
                         'hold'        => get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes',
                         'fee'         => $fee,
                         'total'       => $total,
@@ -483,7 +483,7 @@ class MobbexMarketplace
 
                     // Exit if cuit is not configured
                     if (empty($cuit) && empty($entity))
-                        throw new \Exception('Empty entity UID. Product #' . $product_id);
+                        throw new \Exception('Empty entity UID or Tax id. Product #' . $product_id);
 
                     if (!isset($checkout_data['split'])) $checkout_data['split'] = [];
 
