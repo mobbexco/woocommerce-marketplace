@@ -37,8 +37,7 @@ class MM_Settings
 
         <div class="wrap">
             <h2>Mobbex Marketplace</h2>
-            <p><?= __('To distribute a payment without integrating another Marketplace plugin (eg Dokan), you must charge the Tax ID of the commerce to which you want to assign the payment by product or category.', 'mobbex-marketplace') ?></p>
-            <p><?= __('This Tax Id must be the same as the one configured in the Mobbex commerce', 'mobbex-marketplace') ?></p>
+            <p><?= __('To distribute a payment without integrating another Marketplace plugin (eg Dokan), you must charge the Mobbex Entity UID of the commerce to which you want to assign the payment by product or category.', 'mobbex-marketplace') ?></p>
             <p><?= __('If you want a payment to be commission free, you must leave the commission option empty in the product, category, vendor and plugin configuration (Default Commission) that affect said payment.', 'mobbex-marketplace') ?></p>
             <?php settings_errors(); ?>
 
