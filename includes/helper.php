@@ -103,13 +103,12 @@ class Mbbxm_Helper
     */
     public static function get_entity_uid($product_id)
     {
-        if (self::get_integration() === 'dokan') 
-        {           
+        if (self::get_integration() === 'dokan') {           
             $vendor_id = dokan_get_vendor_by_product($product_id);
             return !empty($vendor_id) ? get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) : '';
         }
-        if (self::get_integration() === 'wcfm')
-        {
+        
+        if (self::get_integration() === 'wcfm'){
             $vendor_id = wcfm_get_vendor_id_by_post($product_id);
             return !empty($vendor_id) ? get_user_meta($vendor_id, 'mobbex_entity_uid', true) : '';
         }
