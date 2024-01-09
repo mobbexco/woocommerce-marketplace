@@ -460,7 +460,7 @@ class MobbexMarketplace
                     }
 
                     $checkout_data['split'][] = [
-                        'entity'      => get_user_meta($vendor_id->get_id(), 'mobbex_entity_uid', true) ?: null,
+                        'entity'      => $entity,
                         'tax_id'      => $cuit ?: null,
                         'hold'        => get_user_meta($vendor_id, 'mobbex_marketplace_hold', true) === 'yes',
                         'fee'         => $fee,
@@ -1117,10 +1117,10 @@ class MobbexMarketplace
 
     public function get_vendor_entity($product_id)
     {
-        if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<' && Mbbxm_Helper::get_marketplace_mode() != 'multivendor')) {
+        if (!empty($checkout_data['wallet']) && version_compare(MOBBEX_VERSION, '3.1.3', '<' && Mbbxm_Helper::get_marketplace_mode() != 'multivendor'))
             return;
-        }
-            return Mbbxm_Helper::get_entity_uid($product_id);
+        
+        return Mbbxm_Helper::get_entity_uid($product_id);
     }
 }
 
