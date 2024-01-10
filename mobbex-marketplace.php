@@ -579,11 +579,14 @@ class MobbexMarketplace
         
         if(empty($order_id))
             $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
-        
+
         try {
             //Set Dokan seller earnings
             if (get_option('mm_option_integration') === 'dokan'){
 
+                if(($response['data']['status_code'] < 200 && $response['data']['status_code'] >= 400) || $response['data']['checkout']['total'] <= 0)
+                    return $response;
+                
                 global $wpdb;
                 $sub_orders = dokan_get_suborder_ids_by($order_id);
 
