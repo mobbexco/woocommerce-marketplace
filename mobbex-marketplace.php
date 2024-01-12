@@ -9,65 +9,52 @@
  * Copyright: 2021 mobbex.com
  */
 
+require_once plugin_dir_path(__FILE__) . 'includes/helper.php';
+require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
+require_once plugin_dir_path(__FILE__) . 'includes/shipping.php';
+require_once plugin_dir_path(__FILE__) . 'includes/wcfmmp-gateway-mobbex.php';
+require_once plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
+
 class MobbexMarketplace
 {
-    public static $version = '1.5.1';
-
-    /**
-     * @var Mbbxm_Helper
-     */
+    /** @var \Mbbxm_Helper */
     public static $helper;
 
-    /**
-     * Settings.
-     */
+    /** @var \MM_Settings */
     public static $settings;
 
-    /**
-     * Errors.
-     */
-    public static $errors = [];
+    /** @var \Mobbex\WP\Checkout\Model\Logger */
+    public static $logger;
 
-    /**
-     * Mobbex URL.
-     */
-    public static $site_url = "https://www.mobbex.com";
-
-    /**
-     * Documentation URL.
-     */
-    public static $doc_url = "https://mobbex.dev";
-
-    /**
-     * Github URLs.
-     */
-    public static $github_url = "https://github.com/mobbexco/woocommerce-marketplace";
+    /** Plugin info */
+    public static $version           = '1.5.1';
+    public static $errors            = [];
+    public static $site_url          = "https://mobbex.com";
+    public static $doc_url           = "https://mobbex.dev";
+    public static $github_url        = "https://github.com/mobbexco/woocommerce-marketplace";
     public static $github_issues_url = "https://github.com/mobbexco/woocommerce-marketplace/issues";
 
     public function init()
     {
         try {
-            MobbexMarketplace::check_dependencies();
-            MobbexMarketplace::load_textdomain();
-            MobbexMarketplace::load_update_checker();
-            MobbexMarketplace::load_helper();
-            MobbexMarketplace::load_settings();
-            MobbexMarketplace::load_shipping();
-            MobbexMarketplace::load_wcfm_gateway();
-        } catch (Exception $e) {
-            MobbexMarketplace::$errors[] = $e->getMessage();
+            self::check_dependencies();
+            self::load_textdomain();
+            self::load_update_checker();
+        } catch (\Exception $e) {
+            self::$errors[] = $e->getMessage();
         }
 
-        if (count(MobbexMarketplace::$errors)) {
+        foreach (MobbexMarketplace::$errors as $error)
+            self::notice('error', $error);
 
-            foreach (MobbexMarketplace::$errors as $error) {
-                MobbexMarketplace::notice('error', $error);
-            }
-
+        if (count(self::$errors))
             return;
-        }
 
-        
+        // Load all classes
+        self::$helper   = new \Mbbxm_Helper();
+        self::$logger   = new \Mobbex\WP\Checkout\Model\Logger();
+        self::$settings = new \MM_Settings(__FILE__);
+
         add_filter('plugin_row_meta', [$this, 'plugin_row_meta'], 10, 2);
         
         // Add marketplace data to checkout
@@ -207,7 +194,6 @@ class MobbexMarketplace
      */
     public static function load_update_checker()
     {
-        require 'plugin-update-checker/plugin-update-checker.php';
         $myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
             'https://github.com/mobbexco/woocommerce-marketplace/',
             __FILE__,
@@ -216,41 +202,6 @@ class MobbexMarketplace
         $myUpdateChecker->getVcsApi()->enableReleaseAssets();
     }
 
-    /**
-     * Load helper.
-     */
-    private static function load_helper()
-    {
-        require_once plugin_dir_path(__FILE__) . 'includes/helper.php';
-    }
-
-    /**
-     * Load settings page.
-     */
-    public static function load_settings()
-    {
-        require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
-        return new MM_Settings(__FILE__);
-    }
-
-    /**
-     * Load Shipping utility functions.
-     */
-    public static function load_shipping()
-    {
-        require_once plugin_dir_path(__FILE__) . 'includes/shipping.php';
-    }
-
-    /**
-     * Load WCFM Integration Class.
-     */
-    public static function load_wcfm_gateway()
-    {
-        require_once plugin_dir_path(__FILE__) . 'includes/wcfmmp-gateway-mobbex.php';
-    }
-
-    
-    
     /**
      * Plugin row meta links
      *
@@ -511,13 +462,7 @@ class MobbexMarketplace
                 }
             }
         } catch (\Exception $e) {
-            // TODO: Show error messages on checkout
-            if(function_exists('mobbex_debug')){
-                mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT));
-            } else {
-                $logger = new \MobbexLogger;
-                $logger->debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($checkout_data, JSON_PRETTY_PRINT), true);
-            }
+            self::$logger->log('error', 'Mobbex Marketplace Error: ' . $e->getMessage(), $checkout_data);
         }
 
         // Try to get shipping items from order
@@ -573,43 +518,36 @@ class MobbexMarketplace
      */
     public function mobbex_webhook($response)
     {
-        $helper = new \Mbbxm_Helper();
-        
-        $order_id  = $_REQUEST['mobbex_order_id'];
-        
-        if(empty($order_id))
-            $order_id  = str_replace('Pedido #', '', $response['data']['payment']['description']);
+        global $wpdb;
+
+        // Get order
+        $order_id = $_GET['mobbex_order_id'] ?: str_replace('Pedido #', '', $response['data']['payment']['description']);
+        $order    = wc_get_order($order_id);
+
+        if (get_option('mm_option_integration') != 'dokan')
+            return $response;
+
+        if (($response['data']['status_code'] < 200 && $response['data']['status_code'] >= 400) || $response['data']['checkout']['total'] <= 0)
+            return $response;
 
         try {
-            //Set Dokan seller earnings
-            if (get_option('mm_option_integration') === 'dokan'){
+            $sub_orders = wc_get_orders([
+                'type'   => 'shop_order',
+                'parent' => $order_id,
+                'limit'  => -1
+            ]) ?: [$order];
 
-                if(($response['data']['status_code'] < 200 && $response['data']['status_code'] >= 400) || $response['data']['checkout']['total'] <= 0)
-                    return $response;
-                
-                global $wpdb;
-                $sub_orders = dokan_get_suborder_ids_by($order_id);
-
-                if($sub_orders) {
-                    foreach ($sub_orders as $order) {
-                        $earning = $helper->get_dokan_vendor_earning($response['data'], wc_get_order($order->ID));
-                        $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
-                    }
-                } else {
-                    $order = wc_get_order($order_id);
-                    $earning = $helper->get_dokan_vendor_earning($response['data'], $order);
-                    $wpdb->update( $wpdb->dokan_orders, ['net_amount' => $earning], ['order_id' => $order->ID]);
-                }
-            }
+            array_walk($sub_orders, function($sub_order) use ($wpdb, $response) {
+                $wpdb->update(
+                    $wpdb->dokan_orders,
+                    ['net_amount' => self::$helper->get_dokan_vendor_earning($response['data'], $sub_order)],
+                    ['order_id'   => $sub_order->get_id()]
+                );
+            });
         } catch (\Exception $e) {
-            if(function_exists('mobbex_debug')){
-                mobbex_debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT));
-            } else {
-                $logger = new \MobbexLogger;
-                $logger->debug('Mobbex Marketplace Error: ' . $e->getMessage(), json_encode($response, JSON_PRETTY_PRINT), true);
-            }
+            self::$logger->log('error', 'Mobbex Marketplace Error: ' . $e->getMessage(), $response);
         }
-        
+
         return $response;
     }
 
