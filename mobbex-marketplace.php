@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mobbex Marketplace
  * Description: Plugin to extend Mobbex Marketplace functionality.
- * Version: 1.5.1
+ * Version: 1.6.0
  * WC tested up to: 4.2.2
  * Author: mobbex.com
  * Author URI: https://mobbex.com/
@@ -27,7 +27,7 @@ class MobbexMarketplace
     public static $logger;
 
     /** Plugin info */
-    public static $version           = '1.5.1';
+    public static $version           = '1.6.0';
     public static $errors            = [];
     public static $site_url          = "https://mobbex.com";
     public static $doc_url           = "https://mobbex.dev";
