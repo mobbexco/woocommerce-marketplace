@@ -24,6 +24,11 @@ class Mbbxm_Shipping
         foreach ($shippings as $shipping) {
             $tax_id        = self::get_shipping_tax_id($shipping, $integration);
             $custom_option = self::get_custom_option($shipping, $custom_options);
+            $entity = get_user_meta(
+                $shipping->get_meta($integration == 'wcfm' ? 'vendor_id' : 'seller_id'),
+                'mobbex_entity_uid',
+                true
+            );
 
             // Try to get custom tax id and recipient configured
             if ($shipping_manager == 'custom' && $custom_option) { 
@@ -34,15 +39,15 @@ class Mbbxm_Shipping
             }
 
             // Search vendor's position in split array
-            $key = array_search($tax_id, array_column($checkout_data['split'], 'tax_id'));
+            $idFound = array_search($entity ?: $tax_id, array_column($checkout_data['split'], $entity ? 'entity' : 'tax_id'));
 
-            if (is_int($key)) {
+            if (is_int($idFound)) {
                 // Add shipping total to vendor total
-                $checkout_data['split'][$key]['total'] += $shipping->get_total();
+                $checkout_data['split'][$idFound]['total'] += $shipping->get_total();
 
                 // If it must be paid by admin, it must be added as a fee
                 if ($recipient === 'admin') {
-                    $checkout_data['split'][$key]['fee'] += $shipping->get_total();
+                    $checkout_data['split'][$idFound]['fee'] += $shipping->get_total();
                 }
             } else if ($recipient == 'cuit') {
                 // Add as a normal split payment
